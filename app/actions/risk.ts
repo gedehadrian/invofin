@@ -41,8 +41,16 @@ export async function decideRisk(
   const latest = assessments[0];
   if (!latest) return { error: "Hasil asesmen risiko belum tersedia." };
 
-  const admin = createAdminClient();
-  await admin
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return {
+      error: "Layanan keputusan risiko belum dikonfigurasi di server. Hubungi admin InvoFin.",
+    };
+  }
+
+  const { error: reviewError } = await admin
     .from("risk_assessments")
     .update({
       decision: parsed.data.decision,
@@ -51,13 +59,16 @@ export async function decideRisk(
       reviewed_at: new Date().toISOString(),
     })
     .eq("id", latest.id);
+  if (reviewError) return { error: reviewError.message };
 
   if (parsed.data.decision === "rejected") {
-    await admin
+    const { error: rejectError } = await admin
       .from("invoices")
       .update({ status: "rejected" })
       .eq("id", invoice.id);
+    if (rejectError) return { error: rejectError.message };
     revalidatePath("/app/risk/queue");
+    revalidatePath(`/app/risk/invoices/${invoice.id}`);
     return { success: "Invoice ditolak oleh Risk Officer." };
   }
 
@@ -79,14 +90,20 @@ export async function decideRisk(
     closes_at: closes.toISOString(),
     status: "open",
   });
-  if (oppError) return { error: oppError.message };
+  // Peluang bersifat satu-per-invoice: percobaan ulang setelah kegagalan parsial
+  // harus lanjut ke pembaruan status, bukan berhenti dengan error mentah.
+  if (oppError && !oppError.message.includes("funding_opportunities_invoice_id_key")) {
+    return { error: oppError.message };
+  }
 
-  await admin
+  const { error: statusError } = await admin
     .from("invoices")
     .update({ status: "eligible_for_funding" })
     .eq("id", invoice.id);
+  if (statusError) return { error: statusError.message };
 
   revalidatePath("/app/risk/queue");
+  revalidatePath(`/app/risk/invoices/${invoice.id}`);
   revalidatePath("/app/lender/marketplace");
   return { success: "Invoice disetujui dan masuk marketplace." };
 }

@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+/** Input tanggal HTML mengirim "YYYY-MM-DD"; string kosong harus ditolak sebelum menyentuh Postgres. */
+function dateString(message: string) {
+  return z
+    .string(message)
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, message)
+    .refine((value) => !Number.isNaN(Date.parse(value)), message);
+}
+
 export const signUpSchema = z.object({
   fullName: z.string().trim().min(3, "Nama lengkap minimal 3 karakter."),
   email: z.string().email("Email tidak valid."),
@@ -26,20 +35,29 @@ export const invoiceDraftSchema = z.object({
   requestedAdvancePercent: z.coerce.number().min(10).max(90).default(80),
 });
 
-export const extractionConfirmSchema = z.object({
-  invoiceId: z.string().uuid(),
-  invoiceNumber: z.string().trim().min(3),
-  issueDate: z.string().min(1),
-  dueDate: z.string().min(1),
-  amount: z.coerce.number().positive(),
-});
+export const extractionConfirmSchema = z
+  .object({
+    invoiceId: z.string().uuid("Invoice tidak dikenali."),
+    invoiceNumber: z.string().trim().min(3, "Nomor invoice minimal 3 karakter."),
+    issueDate: dateString("Tanggal terbit wajib diisi."),
+    dueDate: dateString("Tanggal jatuh tempo wajib diisi."),
+    amount: z.coerce
+      .number({ error: "Nominal wajib diisi dengan angka." })
+      .positive("Nominal harus lebih dari 0."),
+  })
+  .refine((data) => data.dueDate >= data.issueDate, {
+    path: ["dueDate"],
+    error: "Tanggal jatuh tempo harus sama atau setelah tanggal terbit.",
+  });
 
 export const buyerDecisionSchema = z.discriminatedUnion("decision", [
   z.object({
     invoiceId: z.string().uuid(),
     decision: z.literal("confirmed"),
-    confirmedAmount: z.coerce.number().positive(),
-    confirmedDueDate: z.string().min(1),
+    confirmedAmount: z.coerce
+      .number({ error: "Nominal dikonfirmasi wajib diisi dengan angka." })
+      .positive("Nominal dikonfirmasi harus lebih dari 0."),
+    confirmedDueDate: dateString("Tanggal jatuh tempo dikonfirmasi wajib diisi."),
     note: z.string().optional(),
   }),
   z.object({

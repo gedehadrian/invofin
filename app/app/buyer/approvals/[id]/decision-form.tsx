@@ -25,16 +25,26 @@ export function BuyerDecisionForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <Label>Nominal dikonfirmasi</Label>
-          <Input name="confirmedAmount" type="number" defaultValue={amount} />
+          <Input
+            name="confirmedAmount"
+            type="number"
+            min="0.01"
+            step="0.01"
+            required
+            defaultValue={amount}
+          />
         </div>
         <div className="space-y-1">
           <Label>Jatuh tempo dikonfirmasi</Label>
-          <Input name="confirmedDueDate" type="date" defaultValue={dueDate} />
+          <Input name="confirmedDueDate" type="date" required defaultValue={dueDate} />
         </div>
       </div>
       <div className="space-y-1">
         <Label>Catatan / alasan sengketa</Label>
         <Textarea name="note" />
+        <p className="text-xs text-muted-foreground">
+          Wajib diisi minimal 8 karakter bila Anda memilih Sengketa.
+        </p>
       </div>
       {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
       {state.success ? <p className="text-sm text-primary">{state.success}</p> : null}

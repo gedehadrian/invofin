@@ -131,6 +131,15 @@ async function main() {
     if (error || !invoice) throw error ?? new Error("invoice insert failed");
 
     if (["risk_review", "eligible_for_funding", "partially_funded", "funded"].includes(statuses[i])) {
+      await supabase.from("buyer_confirmations").insert({
+        invoice_id: invoice.id,
+        buyer_org_id: buyerOrg,
+        decision: "confirmed",
+        confirmed_amount: 150_000_000 + i * 5_000_000,
+        confirmed_due_date: due.toISOString().slice(0, 10),
+        note: "Seed data",
+        decided_by: i % 2 === 0 ? ids["buyer.a@invofin.demo"] : ids["buyer.b@invofin.demo"],
+      });
       await supabase.from("risk_assessments").insert({
         invoice_id: invoice.id,
         score: statuses[i] === "risk_review" ? 58 : 82,

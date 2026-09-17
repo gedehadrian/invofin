@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveInvoiceDraft, submitInvoice, uploadInvoiceDocument, type ActionState } from "@/app/actions/invoices";
 import { Button } from "@/components/ui/button";
@@ -39,13 +39,32 @@ export function InvoiceWizard({
     fd.set("invoiceId", currentId);
     fd.set("documentType", documentType);
     fd.set("file", file);
-    const result = await uploadInvoiceDocument(fd);
-    setUploadMsg(result.error ?? result.success ?? null);
+    setUploadMsg("Mengunggah dan memproses OCR...");
+    try {
+      const result = await uploadInvoiceDocument(fd);
+      setUploadMsg(result.error ?? result.success ?? null);
+    } catch {
+      // Tanpa penangkapan ini, kegagalan unggahan (mis. batas ukuran body) hilang
+      // sebagai unhandled rejection dan pengguna tidak melihat pesan apa pun.
+      setUploadMsg(
+        "Unggahan gagal diproses server. Pastikan ukuran berkas di bawah 10 MB, lalu coba lagi.",
+      );
+    }
   }
 
   return (
     <div className="grid gap-8 lg:grid-cols-2">
-      <form action={action} className="space-y-4">
+      <form
+        // Bukan `action={action}`: React mereset form setelah form action selesai, sehingga
+        // isian hilang dan vendor mengira draf tidak tersimpan.
+        onSubmit={(e) => {
+          e.preventDefault();
+          const formData = new FormData(e.currentTarget);
+          startTransition(() => action(formData));
+        }}
+        className="space-y-4"
+      >
+        <p className="text-sm font-medium">1. Isi data invoice, lalu simpan draf</p>
         {currentId ? <input type="hidden" name="invoiceId" value={currentId} /> : null}
         <div className="space-y-2">
           <Label htmlFor="buyerOrgId">Anchor buyer</Label>
@@ -105,9 +124,35 @@ export function InvoiceWizard({
         </Button>
       </form>
       <div className="space-y-4 surface p-4">
-        <h2 className="font-medium">Unggah dokumen</h2>
+        <h2 className="font-medium">2. Unggah dokumen, lalu ajukan</h2>
+        {!currentId ? (
+          <p className="rounded-lg bg-amber-50 p-2 text-sm text-amber-800">
+            Klik <strong>Simpan draf</strong> di kiri dulu. Kolom unggah aktif setelah draf
+            tersimpan.
+          </p>
+        ) : null}
         <p className="text-xs text-muted-foreground">
           SHA-256 dihitung di server. File invoice identik ditolak unique constraint.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Belum punya file? Unduh{" "}
+          <a
+            href="/demo/dummy-invoice.pdf"
+            download="dummy-invoice.pdf"
+            className="font-medium text-primary underline-offset-2 hover:underline"
+          >
+            contoh 1
+          </a>{" "}
+          (INV-DEMO-2026-001 · 17 Sep–17 Okt · Rp 25.000.000) atau{" "}
+          <a
+            href="/demo/dummy-invoice-2.pdf"
+            download="dummy-invoice-2.pdf"
+            className="font-medium text-primary underline-offset-2 hover:underline"
+          >
+            contoh 2
+          </a>{" "}
+          (INV-DEMO-2026-002 · 17 Sep–1 Nov · Rp 30.000.000), lalu unggah di kolom invoice. File yang
+          sama hanya bisa dipakai sekali (SHA-256 unik).
         </p>
         {(["invoice", "purchase_order", "bast"] as const).map((type) => (
           <div key={type} className="space-y-1">
@@ -115,9 +160,15 @@ export function InvoiceWizard({
             <Input
               type="file"
               accept="application/pdf,image/jpeg,image/png,image/webp"
+              disabled={!currentId}
               onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void onUpload(type, file);
+                const input = e.currentTarget;
+                const file = input.files?.[0];
+                if (!file) return;
+                // Kosongkan agar berkas yang sama bisa dipilih ulang setelah gagal.
+                void onUpload(type, file).finally(() => {
+                  input.value = "";
+                });
               }}
             />
           </div>
@@ -129,9 +180,13 @@ export function InvoiceWizard({
           disabled={!currentId}
           onClick={async () => {
             if (!currentId) return;
-            const result = await submitInvoice(currentId);
-            if (result.error) setUploadMsg(result.error);
-            else router.push(`/app/vendor/invoices/${currentId}`);
+            try {
+              const result = await submitInvoice(currentId);
+              if (result.error) setUploadMsg(result.error);
+              else router.push(`/app/vendor/invoices/${currentId}`);
+            } catch {
+              setUploadMsg("Pengajuan gagal diproses server. Coba lagi beberapa saat.");
+            }
           }}
         >
           Ajukan invoice

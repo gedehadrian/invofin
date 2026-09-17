@@ -4,6 +4,7 @@ import { getAppContext, homeForRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export default async function AuthenticatedLayout({
   children,

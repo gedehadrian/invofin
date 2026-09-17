@@ -8,10 +8,12 @@ import { formatIdr } from "@/lib/format";
 export default async function BuyerApprovalsPage() {
   const ctx = await requireRole(["buyer"]);
   const supabase = await createClient();
+  // Draf dan tahap koreksi ekstraksi masih milik vendor, belum diajukan ke buyer.
   const { data } = await supabase
     .from("invoices")
     .select("*")
     .eq("buyer_org_id", ctx.current.organization_id)
+    .not("status", "in", "(draft,extraction_review)")
     .order("created_at", { ascending: false });
 
   if (!data?.length) {

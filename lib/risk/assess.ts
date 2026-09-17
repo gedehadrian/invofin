@@ -6,6 +6,7 @@ import {
 } from "@/lib/risk/isolation-forest";
 import {
   bandFromScore,
+  CRITICAL_CODES,
   daysBetween,
   type DocumentSnapshot,
   type ExtractedFields,
@@ -94,7 +95,11 @@ export function runRiskAssessment(args: {
   const merged = [...unique.values()];
   const score = scoreFromFindings(merged);
   const anomalies = merged.filter((f) => f.anomaly);
-  const riskBand = bandFromScore(score, anomalies.length > 0);
+  const riskBand = bandFromScore(
+    score,
+    anomalies.length > 0,
+    merged.some((f) => CRITICAL_CODES.has(f.code)),
+  );
 
   const methods = ["rules_engine"];
   if (args.azureConfigured) methods.unshift("azure_prebuilt_invoice");

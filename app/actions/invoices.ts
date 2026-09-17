@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/auth/session";
 import { getExtractionProvider } from "@/lib/documents/azure";
 import { sanitizeFilename, sha256File, validateUpload } from "@/lib/documents/hash";
-import { invoiceDraftSchema } from "@/lib/validations";
+import { extractionConfirmSchema, invoiceDraftSchema } from "@/lib/validations";
 import type { DocumentType, Json } from "@/lib/database.types";
 
 export type ActionState = { error?: string; success?: string; invoiceId?: string };
@@ -166,11 +166,24 @@ export async function uploadInvoiceDocument(formData: FormData): Promise<ActionS
 
   if (documentType === "invoice") {
     const provider = getExtractionProvider();
-    const result = await provider.extractInvoice({
-      bytes,
-      mimeType: file.type,
-      filename: file.name,
-    });
+    let result;
+    try {
+      result = await provider.extractInvoice({
+        bytes,
+        mimeType: file.type,
+        filename: file.name,
+      });
+    } catch (error) {
+      result = {
+        provider: provider.name,
+        status: "failed" as const,
+        fields: {},
+        raw: {
+          reason: error instanceof Error ? error.message : "OCR gagal.",
+        },
+        processedAt: new Date().toISOString(),
+      };
+    }
     await admin
       .from("invoice_documents")
       .update({
@@ -249,22 +262,38 @@ export async function confirmExtraction(
   formData: FormData,
 ): Promise<ActionState> {
   const ctx = await requireRole(["vendor"]);
-  const invoiceId = String(formData.get("invoiceId") ?? "");
+  const parsed = extractionConfirmSchema.safeParse({
+    invoiceId: formData.get("invoiceId"),
+    invoiceNumber: formData.get("invoiceNumber"),
+    issueDate: formData.get("issueDate"),
+    dueDate: formData.get("dueDate"),
+    amount: formData.get("amount"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Data tidak valid." };
+  }
+
+  const invoiceId = parsed.data.invoiceId;
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("invoices")
     .update({
-      invoice_number: String(formData.get("invoiceNumber") ?? ""),
-      issue_date: String(formData.get("issueDate") ?? ""),
-      due_date: String(formData.get("dueDate") ?? ""),
-      amount: Number(formData.get("amount")),
+      invoice_number: parsed.data.invoiceNumber,
+      issue_date: parsed.data.issueDate,
+      due_date: parsed.data.dueDate,
+      amount: parsed.data.amount,
       status: "buyer_review",
     })
     .eq("id", invoiceId)
     .eq("vendor_org_id", ctx.current.organization_id)
-    .eq("status", "extraction_review");
-  if (error) return { error: error.message };
+    .eq("status", "extraction_review")
+    .select("id");
+  if (error) return { error: friendlyDbError(error.message) };
+  if (!data?.length) {
+    return { error: "Invoice tidak berada dalam tahap konfirmasi ekstraksi." };
+  }
   revalidatePath(`/app/vendor/invoices/${invoiceId}`);
+  revalidatePath("/app/vendor/invoices");
   return { success: "Data dikonfirmasi. Invoice masuk antrean buyer.", invoiceId };
 }
 

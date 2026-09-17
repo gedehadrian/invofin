@@ -1,0 +1,99 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 1277 >>
+stream
+BT
+/F1 22 Tf
+1 0 0 1 56 800 Tm
+(INVOICE) Tj
+/F1 10 Tf
+1 0 0 1 56 778 Tm
+(PT Sari Komponen) Tj
+/F1 10 Tf
+1 0 0 1 56 764 Tm
+(Jl. Gatot Subroto No. 12, Jakarta 12950) Tj
+/F1 10 Tf
+1 0 0 1 56 750 Tm
+(NPWP 10.0.1.3-012.000) Tj
+/F1 12 Tf
+1 0 0 1 56 720 Tm
+(Invoice Number: INV-DEMO-2026-002) Tj
+/F1 12 Tf
+1 0 0 1 56 704 Tm
+(Invoice Date: 2026-09-17) Tj
+/F1 12 Tf
+1 0 0 1 56 688 Tm
+(Due Date: 2026-11-01) Tj
+/F1 12 Tf
+1 0 0 1 56 672 Tm
+(Purchase Order: PO-7741) Tj
+/F1 11 Tf
+1 0 0 1 56 640 Tm
+(Bill To) Tj
+/F1 11 Tf
+1 0 0 1 56 624 Tm
+(PT Anchor Manufaktur) Tj
+/F1 10 Tf
+1 0 0 1 56 610 Tm
+(Jl. Sudirman Kav. 21, Jakarta 12190) Tj
+/F1 11 Tf
+1 0 0 1 56 576 Tm
+(Description) Tj
+/F1 10 Tf
+1 0 0 1 56 558 Tm
+(Supply of packaging materials - lot A) Tj
+/F1 10 Tf
+1 0 0 1 56 542 Tm
+(Quantity: 1) Tj
+/F1 10 Tf
+1 0 0 1 56 526 Tm
+(Unit Price: IDR 30,000,000.00) Tj
+/F1 10 Tf
+1 0 0 1 56 510 Tm
+(Amount: IDR 30,000,000.00) Tj
+/F1 10 Tf
+1 0 0 1 56 478 Tm
+(Subtotal: IDR 30,000,000.00) Tj
+/F1 10 Tf
+1 0 0 1 56 462 Tm
+(Tax: IDR 0.00) Tj
+/F1 14 Tf
+1 0 0 1 56 438 Tm
+(Invoice Total: IDR 30,000,000.00) Tj
+/F1 10 Tf
+1 0 0 1 56 410 Tm
+(Currency: IDR) Tj
+/F1 10 Tf
+1 0 0 1 56 394 Tm
+(Payment terms: Net 30) Tj
+/F1 9 Tf
+1 0 0 1 56 360 Tm
+(Dummy document for InvoFin Azure Document Intelligence test.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000001569 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1639
+%%EOF

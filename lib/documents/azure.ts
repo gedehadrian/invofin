@@ -56,6 +56,41 @@ function fieldAmount(field?: AzureField) {
   return null;
 }
 
+const AZURE_ANALYZE_MIME = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+]);
+
+function failedResult(
+  provider: string,
+  raw: Record<string, unknown>,
+): ExtractionResult {
+  return {
+    provider,
+    status: "failed",
+    fields: {},
+    raw,
+    processedAt: new Date().toISOString(),
+  };
+}
+
+function isAzureOperationUrl(url: string, endpoint: string) {
+  try {
+    const operation = new URL(url);
+    const origin = new URL(endpoint);
+    if (operation.protocol !== "https:") return false;
+    const host = operation.hostname.toLowerCase();
+    return (
+      host === origin.hostname.toLowerCase() ||
+      host.endsWith(".cognitiveservices.azure.com") ||
+      host.endsWith(".api.cognitive.microsoft.com")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export class AzureDocumentIntelligenceProvider implements DocumentExtractionProvider {
   readonly name = "azure-document-intelligence:prebuilt-invoice";
 
@@ -86,65 +121,89 @@ export class AzureDocumentIntelligenceProvider implements DocumentExtractionProv
       };
     }
 
-    const analyzeUrl = `${endpoint}/documentintelligence/documentModels/prebuilt-invoice:analyze?api-version=2024-11-30`;
-    const start = await fetch(analyzeUrl, {
-      method: "POST",
-      headers: {
-        "Ocp-Apim-Subscription-Key": key,
-        "Content-Type": input.mimeType,
-      },
-      body: input.bytes,
-    });
-
-    if (!start.ok) {
-      const text = await start.text();
+    if (!AZURE_ANALYZE_MIME.has(input.mimeType)) {
       return {
         provider: this.name,
-        status: "failed",
+        status: "needs_review",
         fields: {},
-        raw: { httpStatus: start.status, body: text.slice(0, 2000) },
+        raw: {
+          reason:
+            "Tipe berkas tidak didukung prebuilt-invoice. Unggah PDF, JPG, atau PNG.",
+          mimeType: input.mimeType,
+          filename: input.filename,
+        },
         processedAt: new Date().toISOString(),
       };
     }
 
-    const operationLocation = start.headers.get("operation-location");
-    if (!operationLocation) {
+    try {
+      const analyzeUrl = `${endpoint}/documentintelligence/documentModels/prebuilt-invoice:analyze?api-version=2024-11-30`;
+      const start = await fetch(analyzeUrl, {
+        method: "POST",
+        headers: {
+          "Ocp-Apim-Subscription-Key": key,
+          "Content-Type": input.mimeType,
+        },
+        body: input.bytes,
+      });
+
+      if (!start.ok) {
+        const text = await start.text();
+        return failedResult(this.name, {
+          httpStatus: start.status,
+          body: text.slice(0, 2000),
+        });
+      }
+
+      const operationLocation = start.headers.get("operation-location");
+      if (!operationLocation || !isAzureOperationUrl(operationLocation, endpoint)) {
+        return failedResult(this.name, {
+          reason: "Invalid or missing Azure operation-location header.",
+        });
+      }
+
+      const result = await this.poll(operationLocation, key);
+      if (result.status === "failed") {
+        return failedResult(this.name, {
+          status: result.status,
+          error: result.error?.message ?? "Azure analyze failed.",
+        });
+      }
+
+      const fields = result.analyzeResult?.documents?.[0]?.fields ?? {};
+      const mapped: ExtractedFields = {
+        invoiceNumber: fieldString(fields.InvoiceId),
+        buyerName:
+          fieldString(fields.CustomerName) ??
+          fieldString(fields.CustomerAddressRecipient),
+        vendorName: fieldString(fields.VendorName),
+        amount: fieldAmount(fields.InvoiceTotal),
+        issueDate: fieldDate(fields.InvoiceDate),
+        dueDate: fieldDate(fields.DueDate),
+        purchaseOrder: fieldString(fields.PurchaseOrder),
+        currency: fields.InvoiceTotal?.valueCurrency?.currencyCode ?? null,
+        confidence:
+          fields.InvoiceTotal?.confidence ?? fields.InvoiceId?.confidence ?? null,
+      };
+
+      const complete = Boolean(mapped.invoiceNumber || mapped.amount);
       return {
         provider: this.name,
-        status: "failed",
-        fields: {},
-        raw: { reason: "Missing operation-location header." },
+        status: complete ? "completed" : "needs_review",
+        fields: mapped,
+        raw: {
+          model: "prebuilt-invoice",
+          filename: input.filename,
+          status: result.status,
+          fields,
+        },
         processedAt: new Date().toISOString(),
       };
+    } catch (error) {
+      return failedResult(this.name, {
+        reason: error instanceof Error ? error.message : "Azure request failed.",
+      });
     }
-
-    const result = await this.poll(operationLocation, key);
-    const fields = result.analyzeResult?.documents?.[0]?.fields ?? {};
-    const mapped: ExtractedFields = {
-      invoiceNumber: fieldString(fields.InvoiceId),
-      buyerName: fieldString(fields.CustomerName) ?? fieldString(fields.CustomerAddressRecipient),
-      vendorName: fieldString(fields.VendorName),
-      amount: fieldAmount(fields.InvoiceTotal),
-      issueDate: fieldDate(fields.InvoiceDate),
-      dueDate: fieldDate(fields.DueDate),
-      purchaseOrder: fieldString(fields.PurchaseOrder),
-      currency: fields.InvoiceTotal?.valueCurrency?.currencyCode ?? null,
-      confidence: fields.InvoiceTotal?.confidence ?? fields.InvoiceId?.confidence ?? null,
-    };
-
-    const complete = Boolean(mapped.invoiceNumber || mapped.amount);
-    return {
-      provider: this.name,
-      status: complete ? "completed" : "needs_review",
-      fields: mapped,
-      raw: {
-        model: "prebuilt-invoice",
-        filename: input.filename,
-        status: result.status,
-        fields,
-      },
-      processedAt: new Date().toISOString(),
-    };
   }
 
   private async poll(url: string, key: string): Promise<AzureAnalyzeOperation> {
@@ -152,6 +211,13 @@ export class AzureDocumentIntelligenceProvider implements DocumentExtractionProv
       const res = await fetch(url, {
         headers: { "Ocp-Apim-Subscription-Key": key },
       });
+      if (!res.ok) {
+        const body = await res.text();
+        return {
+          status: "failed",
+          error: { message: `Poll HTTP ${res.status}: ${body.slice(0, 300)}` },
+        };
+      }
       const json = (await res.json()) as AzureAnalyzeOperation;
       if (json.status === "succeeded" || json.status === "failed") return json;
       await new Promise((r) => setTimeout(r, 1500));

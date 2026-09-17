@@ -18,6 +18,8 @@ export const REASON_CODES = {
   INSUFFICIENT_HISTORY: "Histori transaksi vendor belum cukup untuk Isolation Forest.",
   ISOLATION_FOREST_OUTLIER: "Pola transaksi menyimpang dari histori vendor (Isolation Forest).",
   HIGH_ADVANCE_RATIO: "Persentase pencairan yang diminta di atas 80%.",
+  BUYER_NAME_MISMATCH: "Nama buyer pada dokumen berbeda dari organisasi buyer invoice.",
+  VENDOR_NAME_MISMATCH: "Nama vendor pada dokumen berbeda dari organisasi vendor invoice.",
 } as const;
 
 export type ReasonCode = keyof typeof REASON_CODES;
@@ -42,7 +44,24 @@ export const SEVERITY: Record<ReasonCode, number> = {
   INSUFFICIENT_HISTORY: 6,
   ISOLATION_FOREST_OUTLIER: 18,
   HIGH_ADVANCE_RATIO: 6,
+  BUYER_NAME_MISMATCH: 20,
+  VENDOR_NAME_MISMATCH: 20,
 };
+
+/**
+ * Temuan yang mengindikasikan dokumen tidak sesuai dengan data yang diajukan.
+ * Satu saja sudah cukup untuk memaksa band "review", berapa pun skornya, agar
+ * invoice palsu tidak tampil sebagai A/B/C di marketplace.
+ */
+export const CRITICAL_CODES: ReadonlySet<ReasonCode> = new Set([
+  "DUPLICATE_INVOICE_FILE",
+  "INVOICE_NUMBER_MISMATCH",
+  "AMOUNT_MISMATCH",
+  "PO_AMOUNT_MISMATCH",
+  "BAST_AMOUNT_MISMATCH",
+  "BUYER_NAME_MISMATCH",
+  "VENDOR_NAME_MISMATCH",
+]);
 
 export type ExtractedFields = {
   invoiceNumber?: string | null;
@@ -72,6 +91,9 @@ export type InvoiceInput = {
   buyerStatus: "pending" | "active" | "suspended";
   duplicateInvoiceHash: boolean;
   duplicateSupportingHash: boolean;
+  /** Nama organisasi terdaftar, dibandingkan dengan nama hasil OCR. */
+  buyerName?: string | null;
+  vendorName?: string | null;
 };
 
 export type RuleFinding = {
@@ -94,6 +116,33 @@ function normalize(value?: string | null) {
 function amountsDiffer(a?: number | null, b?: number | null, tolerance = 0.02) {
   if (a == null || b == null || a <= 0 || b <= 0) return false;
   return Math.abs(a - b) / Math.max(a, b) > tolerance;
+}
+
+const LEGAL_FORMS = new Set([
+  "pt", "cv", "ud", "pd", "fa", "tbk", "persero", "perum", "perseroan", "terbatas",
+  "ltd", "inc", "co", "corp", "llc",
+]);
+
+function nameTokens(value: string) {
+  return value
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(" ")
+    .filter((t) => t && !LEGAL_FORMS.has(t));
+}
+
+/**
+ * Toleran terhadap bentuk badan usaha, tanda baca, dan tambahan kata dari OCR
+ * (mis. "PT Andi Buyer A - Finance Dept" cocok dengan "Andi Buyer A, Tbk").
+ */
+export function companyNamesMatch(a: string, b: string) {
+  const ta = new Set(nameTokens(a));
+  const tb = new Set(nameTokens(b));
+  if (ta.size === 0 || tb.size === 0) return true;
+  const shared = [...ta].filter((t) => tb.has(t)).length;
+  return shared === Math.min(ta.size, tb.size);
 }
 
 export function median(values: number[]) {
@@ -176,6 +225,22 @@ export function runDocumentConsistencyRules(args: {
     add("DATE_MISMATCH");
   }
 
+  if (
+    extractedInvoice?.buyerName &&
+    args.invoice.buyerName &&
+    !companyNamesMatch(extractedInvoice.buyerName, args.invoice.buyerName)
+  ) {
+    add("BUYER_NAME_MISMATCH", true);
+  }
+
+  if (
+    extractedInvoice?.vendorName &&
+    args.invoice.vendorName &&
+    !companyNamesMatch(extractedInvoice.vendorName, args.invoice.vendorName)
+  ) {
+    add("VENDOR_NAME_MISMATCH", true);
+  }
+
   if (amountsDiffer(poDoc?.extracted?.amount, args.invoice.amount, 0.05)) {
     add("PO_AMOUNT_MISMATCH", true);
   }
@@ -191,7 +256,8 @@ export function scoreFromFindings(findings: RuleFinding[]) {
   return Math.max(0, Math.min(100, 100 - penalty));
 }
 
-export function bandFromScore(score: number, hasAnomaly: boolean) {
+export function bandFromScore(score: number, hasAnomaly: boolean, hasCritical = false) {
+  if (hasCritical) return "review" as const;
   if (hasAnomaly && score < 50) return "review" as const;
   if (score >= 90) return "A" as const;
   if (score >= 75) return "B" as const;

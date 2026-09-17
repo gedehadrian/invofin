@@ -27,6 +27,10 @@ export default async function RiskInvoiceDetail({
   const risk = [...(invoice.risk_assessments ?? [])].sort((a, b) =>
     a.created_at < b.created_at ? 1 : -1,
   )[0];
+  const anomalies = (Array.isArray(risk?.anomaly_flags) ? risk.anomaly_flags : []) as {
+    code: string;
+    message: string;
+  }[];
 
   return (
     <div className="space-y-6">
@@ -54,8 +58,25 @@ export default async function RiskInvoiceDetail({
               );
             })}
           </ul>
+          <p className="mt-3 text-muted-foreground">Anomaly flags</p>
+          {anomalies.length ? (
+            <ul className="list-disc pl-5 text-slate-300">
+              {anomalies.map((item) => (
+                <li key={item.code}>
+                  {item.code}: {item.message}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="pl-1 text-slate-300">Tidak ada anomali terdeteksi.</p>
+          )}
         </div>
-      ) : null}
+      ) : (
+        <div className="surface p-4 text-sm text-muted-foreground">
+          Hasil asesmen risiko belum tersedia untuk invoice ini. Asesmen dibuat otomatis
+          saat buyer mengonfirmasi invoice.
+        </div>
+      )}
       {invoice.status === "risk_review" ? <RiskDecisionForm invoiceId={invoice.id} /> : null}
     </div>
   );
