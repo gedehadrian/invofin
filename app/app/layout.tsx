@@ -3,6 +3,8 @@ import { AppShell } from "@/components/app-shell";
 import { getAppContext, homeForRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export default async function AuthenticatedLayout({
   children,
 }: {
