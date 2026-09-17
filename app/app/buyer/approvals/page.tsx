@@ -23,8 +23,8 @@ export default async function BuyerApprovalsPage() {
       <h1 className="text-2xl font-semibold">Konfirmasi invoice</h1>
       <ul className="space-y-2">
         {data.map((invoice) => (
-          <li key={invoice.id} className="flex items-center justify-between rounded-xl border border-white/10 px-4 py-3">
-            <Link href={`/app/buyer/approvals/${invoice.id}`} className="text-teal-300">
+          <li key={invoice.id} className="flex items-center justify-between surface px-4 py-3">
+            <Link href={`/app/buyer/approvals/${invoice.id}`} className="text-primary">
               {invoice.invoice_number} · {formatIdr(Number(invoice.amount))}
             </Link>
             <StatusBadge status={invoice.status} />

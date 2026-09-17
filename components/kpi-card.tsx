@@ -13,15 +13,15 @@ export function KpiCard({
   className?: string;
 }) {
   return (
-    <Card className={cn("border-white/5 bg-slate-900/70", className)}>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-medium tracking-wide text-slate-400 uppercase">
+    <Card size="sm" className={cn(className)}>
+      <CardHeader className="pb-1">
+        <CardTitle className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
           {label}
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-semibold tracking-tight text-white">{value}</p>
-        {hint ? <p className="mt-1 text-xs text-slate-400">{hint}</p> : null}
+        <p className="text-xl font-semibold tracking-tight text-foreground">{value}</p>
+        {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
       </CardContent>
     </Card>
   );
@@ -35,9 +35,9 @@ export function EmptyState({
   description: string;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-white/10 px-6 py-12 text-center">
-      <p className="font-medium text-white">{title}</p>
-      <p className="mt-1 text-sm text-slate-400">{description}</p>
+    <div className="surface px-6 py-10 text-center">
+      <p className="font-medium text-foreground">{title}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
     </div>
   );
 }

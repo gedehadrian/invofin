@@ -33,17 +33,17 @@ export default async function RiskInvoiceDetail({
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{invoice.invoice_number}</h1>
-          <p className="text-sm text-slate-400">{formatIdr(Number(invoice.amount))}</p>
+          <p className="text-sm text-muted-foreground">{formatIdr(Number(invoice.amount))}</p>
         </div>
         <StatusBadge status={invoice.status} />
       </div>
       <InvoiceTimeline status={invoice.status} history={invoice.status_history ?? []} />
       <DocumentLinks documents={invoice.invoice_documents ?? []} />
       {risk ? (
-        <div className="rounded-xl border border-white/10 p-4 text-sm">
+        <div className="surface p-4 text-sm">
           <RiskBandBadge band={risk.risk_band as RiskBand} />
           <p className="mt-2">Skor {risk.score} · {risk.assessment_method}</p>
-          <p className="mt-2 text-slate-400">Reason codes</p>
+          <p className="mt-2 text-muted-foreground">Reason codes</p>
           <ul className="list-disc pl-5 text-slate-300">
             {(Array.isArray(risk.reason_codes) ? risk.reason_codes : []).map((r) => {
               const item = r as { code: string; message: string };

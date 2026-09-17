@@ -14,9 +14,9 @@ export default async function AdminAuditPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Audit trail</h1>
-      <div className="overflow-auto rounded-xl border border-white/10">
+      <div className="surface overflow-auto">
         <table className="w-full text-sm">
-          <thead className="bg-white/5 text-left text-slate-400">
+          <thead className="bg-muted text-left text-muted-foreground">
             <tr>
               <th className="px-4 py-3">Waktu</th>
               <th className="px-4 py-3">Aksi</th>
@@ -25,7 +25,7 @@ export default async function AdminAuditPage() {
           </thead>
           <tbody>
             {(data ?? []).map((log) => (
-              <tr key={log.id} className="border-t border-white/5">
+              <tr key={log.id} className="border-t border-border">
                 <td className="px-4 py-3">{formatDateTime(log.created_at)}</td>
                 <td className="px-4 py-3">{log.action}</td>
                 <td className="px-4 py-3">

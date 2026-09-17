@@ -29,8 +29,8 @@ export default async function RiskQueuePage() {
           )[0];
           const flags = Array.isArray(risk?.anomaly_flags) ? risk.anomaly_flags.length : 0;
           return (
-            <li key={invoice.id} className="flex items-center justify-between rounded-xl border border-white/10 px-4 py-3">
-              <Link href={`/app/risk/invoices/${invoice.id}`} className="text-teal-300">
+            <li key={invoice.id} className="flex items-center justify-between surface px-4 py-3">
+              <Link href={`/app/risk/invoices/${invoice.id}`} className="text-primary">
                 {invoice.invoice_number} · {formatIdr(Number(invoice.amount))} · {flags} anomaly
               </Link>
               <div className="flex items-center gap-2">

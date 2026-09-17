@@ -14,10 +14,10 @@ export default function SignInPage() {
   const [state, action, pending] = useActionState(signInAction, initial);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-10">
       <Logo />
-      <h1 className="mt-8 text-2xl font-semibold">Masuk ke InvoFin</h1>
-      <form action={action} className="mt-6 space-y-4">
+      <h1 className="mt-6 text-xl font-semibold">Masuk ke InvoFin</h1>
+      <form action={action} className="surface mt-5 space-y-4 p-5">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input id="email" name="email" type="email" required autoComplete="email" />
@@ -26,14 +26,14 @@ export default function SignInPage() {
           <Label htmlFor="password">Kata sandi</Label>
           <Input id="password" name="password" type="password" required autoComplete="current-password" />
         </div>
-        {state.error ? <p className="text-sm text-red-400">{state.error}</p> : null}
+        {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
         <Button type="submit" className="w-full" disabled={pending}>
           {pending ? "Memproses..." : "Masuk"}
         </Button>
       </form>
-      <p className="mt-4 text-sm text-slate-400">
+      <p className="mt-4 text-sm text-muted-foreground">
         Belum punya akun?{" "}
-        <Link href="/sign-up" className="text-teal-300">
+        <Link href="/sign-up" className="font-medium text-primary">
           Daftar
         </Link>
       </p>

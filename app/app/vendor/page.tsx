@@ -38,17 +38,17 @@ export default async function VendorDashboard() {
   }, {});
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-end justify-between">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Dasbor vendor</h1>
-          <p className="text-sm text-slate-400">Pantau pengajuan dan status pendanaan.</p>
+          <h1 className="text-xl font-semibold">Dasbor vendor</h1>
+          <p className="text-sm text-muted-foreground">Pantau pengajuan dan status pendanaan.</p>
         </div>
         <Button asChild>
           <Link href="/app/vendor/invoices/new">Ajukan invoice</Link>
         </Button>
       </div>
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
         <KpiCard label="Outstanding" value={String(outstanding.length)} />
         <KpiCard
           label="Eligible amount"
@@ -66,9 +66,9 @@ export default async function VendorDashboard() {
       {rows.length === 0 ? (
         <EmptyState title="Belum ada invoice" description="Mulai dengan unggah invoice, PO, dan BAST." />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-white/10">
+        <div className="surface overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-white/5 text-left text-slate-400">
+            <thead className="bg-muted text-left text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">Nomor</th>
                 <th className="px-4 py-3">Nominal</th>
@@ -77,9 +77,9 @@ export default async function VendorDashboard() {
             </thead>
             <tbody>
               {rows.slice(0, 8).map((invoice) => (
-                <tr key={invoice.id} className="border-t border-white/5">
+                <tr key={invoice.id} className="border-t border-border">
                   <td className="px-4 py-3">
-                    <Link className="text-teal-300" href={`/app/vendor/invoices/${invoice.id}`}>
+                    <Link className="text-primary" href={`/app/vendor/invoices/${invoice.id}`}>
                       {invoice.invoice_number}
                     </Link>
                   </td>

@@ -38,7 +38,7 @@ export default async function VendorInvoiceDetail({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">{invoice.invoice_number}</h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             {formatIdr(Number(invoice.amount))} · jatuh tempo {formatDate(invoice.due_date)}
           </p>
         </div>
@@ -46,13 +46,13 @@ export default async function VendorInvoiceDetail({
       </div>
       <InvoiceTimeline status={invoice.status} history={invoice.status_history ?? []} />
       <section className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-white/10 p-4">
+        <div className="surface p-4">
           <h2 className="font-medium">Dokumen</h2>
           <DocumentLinks documents={invoice.invoice_documents ?? []} />
         </div>
-        <div className="rounded-xl border border-white/10 p-4">
+        <div className="surface p-4">
           <h2 className="font-medium">Ekstraksi OCR</h2>
-          <p className="mt-2 text-xs text-slate-400">
+          <p className="mt-2 text-xs text-muted-foreground">
             Provider: {invoiceDoc?.extraction_provider ?? "belum jalan"} · status{" "}
             {invoiceDoc?.extraction_status ?? "—"}
           </p>
@@ -65,7 +65,7 @@ export default async function VendorInvoiceDetail({
         </div>
       </section>
       <section className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-white/10 p-4">
+        <div className="surface p-4">
           <h2 className="font-medium">Konfirmasi buyer</h2>
           {invoice.buyer_confirmations ? (
             <p className="mt-2 text-sm text-slate-300">
@@ -75,22 +75,22 @@ export default async function VendorInvoiceDetail({
                 : invoice.buyer_confirmations.note}
             </p>
           ) : (
-            <p className="mt-2 text-sm text-slate-500">Belum ada keputusan buyer.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Belum ada keputusan buyer.</p>
           )}
         </div>
-        <div className="rounded-xl border border-white/10 p-4">
+        <div className="surface p-4">
           <h2 className="font-medium">Risk assessment awal</h2>
           {latestRisk ? (
             <div className="mt-2 space-y-2 text-sm">
               <RiskBandBadge band={latestRisk.risk_band as RiskBand} />
               <p>Skor {latestRisk.score} · {latestRisk.assessment_method}</p>
-              <p className="text-slate-400">
+              <p className="text-muted-foreground">
                 Keputusan akhir: Risk Officer
                 {latestRisk.decision ? ` (${latestRisk.decision})` : " (menunggu)"}
               </p>
             </div>
           ) : (
-            <p className="mt-2 text-sm text-slate-500">Belum dinilai.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Belum dinilai.</p>
           )}
         </div>
       </section>

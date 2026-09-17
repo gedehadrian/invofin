@@ -14,10 +14,10 @@ export default function SignUpPage() {
   const [state, action, pending] = useActionState(signUpAction, initial);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-10">
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-10">
       <Logo />
-      <h1 className="mt-8 text-2xl font-semibold">Buat akun organisasi</h1>
-      <form action={action} className="mt-6 space-y-4">
+      <h1 className="mt-6 text-xl font-semibold">Buat akun organisasi</h1>
+      <form action={action} className="surface mt-5 space-y-4 p-5">
         <div className="space-y-2">
           <Label htmlFor="fullName">Nama lengkap</Label>
           <Input id="fullName" name="fullName" required />
@@ -51,15 +51,15 @@ export default function SignUpPage() {
           <Label htmlFor="sector">Sektor (opsional)</Label>
           <Input id="sector" name="sector" placeholder="Manufaktur, ritel, konstruksi" />
         </div>
-        {state.error ? <p className="text-sm text-red-400">{state.error}</p> : null}
-        {state.success ? <p className="text-sm text-teal-300">{state.success}</p> : null}
+        {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
+        {state.success ? <p className="text-sm text-[#2f7a6a]">{state.success}</p> : null}
         <Button type="submit" className="w-full" disabled={pending}>
           {pending ? "Membuat akun..." : "Daftar"}
         </Button>
       </form>
-      <p className="mt-4 text-sm text-slate-400">
+      <p className="mt-4 text-sm text-muted-foreground">
         Sudah punya akun?{" "}
-        <Link href="/sign-in" className="text-teal-300">
+        <Link href="/sign-in" className="font-medium text-primary">
           Masuk
         </Link>
       </p>

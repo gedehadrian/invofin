@@ -47,19 +47,19 @@ export default async function OpportunityDetail({
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm text-slate-400">{invoice?.invoice_number}</p>
+        <p className="text-sm text-muted-foreground">{invoice?.invoice_number}</p>
         <h1 className="text-2xl font-semibold">{formatIdr(Number(opp.target_amount))}</h1>
         {risk ? <div className="mt-2"><RiskBandBadge band={risk.risk_band} /></div> : null}
       </div>
       <Progress value={pct} />
-      <p className="text-sm text-slate-400">
+      <p className="text-sm text-muted-foreground">
         Tenor {invoice ? tenorDays(invoice.issue_date, invoice.due_date) : 0} hari · buyer{" "}
         {invoice?.buyer_confirmations?.decision ?? "—"} · jatuh tempo{" "}
         {formatDate(invoice?.buyer_confirmations?.confirmed_due_date ?? invoice?.due_date)}
       </p>
-      <div className="rounded-xl border border-white/10 p-4 text-sm">
+      <div className="surface p-4 text-sm">
         <p className="font-medium">Reason codes</p>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-slate-400">
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
           {(risk?.reason_codes ?? []).map((r) => (
             <li key={r.code}>{r.code}: {r.message}</li>
           ))}
@@ -68,7 +68,7 @@ export default async function OpportunityDetail({
       {opp.status === "open" ? (
         <CommitForm opportunityId={opp.id} remaining={remaining} />
       ) : (
-        <p className="text-sm text-slate-400">Peluang {opp.status}.</p>
+        <p className="text-sm text-muted-foreground">Peluang {opp.status}.</p>
       )}
     </div>
   );

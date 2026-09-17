@@ -18,7 +18,7 @@ export function DocumentLinks({ documents }: { documents: InvoiceDocument[] }) {
             </span>
           </span>
           <button
-            className="text-teal-300 hover:underline"
+            className="text-primary hover:underline"
             type="button"
             onClick={async () => {
               const url = await createSignedDocumentUrl(doc.id);

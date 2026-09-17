@@ -29,7 +29,7 @@ export function OrgStatusForm({
       <Button type="submit" size="sm" disabled={pending}>
         Simpan
       </Button>
-      {state.error ? <span className="text-xs text-red-400">{state.error}</span> : null}
+      {state.error ? <span className="text-xs text-destructive">{state.error}</span> : null}
     </form>
   );
 }

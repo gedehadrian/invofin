@@ -23,8 +23,8 @@ export function CommitForm({
         <Label>Nominal komitmen (sisa {remaining})</Label>
         <Input name="amount" type="number" min={1} max={remaining} required />
       </div>
-      {state.error ? <p className="text-sm text-red-400">{state.error}</p> : null}
-      {state.success ? <p className="text-sm text-teal-300">{state.success}</p> : null}
+      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
+      {state.success ? <p className="text-sm text-primary">{state.success}</p> : null}
       <Button type="submit" disabled={pending || remaining <= 0}>
         Buat komitmen
       </Button>

@@ -4,32 +4,32 @@ import type { InvoiceStatus, RiskBand } from "@/lib/database.types";
 import { cn } from "@/lib/utils";
 
 const STATUS_CLASS: Record<string, string> = {
-  draft: "bg-slate-800 text-slate-200",
-  submitted: "bg-sky-950 text-sky-200",
-  extraction_review: "bg-amber-950 text-amber-200",
-  buyer_review: "bg-indigo-950 text-indigo-200",
-  risk_review: "bg-orange-950 text-orange-100",
-  eligible_for_funding: "bg-teal-950 text-teal-200",
-  partially_funded: "bg-cyan-950 text-cyan-200",
-  funded: "bg-emerald-950 text-emerald-200",
-  rejected: "bg-red-950 text-red-200",
-  repaid: "bg-zinc-800 text-zinc-200",
+  draft: "bg-muted text-muted-foreground",
+  submitted: "bg-sky-50 text-sky-700",
+  extraction_review: "bg-amber-50 text-amber-800",
+  buyer_review: "bg-indigo-50 text-indigo-700",
+  risk_review: "bg-orange-50 text-orange-800",
+  eligible_for_funding: "bg-emerald-50 text-emerald-800",
+  partially_funded: "bg-cyan-50 text-cyan-800",
+  funded: "bg-[#439a86]/12 text-[#2f7a6a]",
+  rejected: "bg-red-50 text-[#bb4430]",
+  repaid: "bg-muted text-foreground",
 };
 
 export function StatusBadge({ status }: { status: InvoiceStatus | string }) {
   return (
-    <Badge className={cn("border-0 font-medium", STATUS_CLASS[status] ?? "bg-slate-800")}>
+    <Badge className={cn("border-0 font-medium", STATUS_CLASS[status] ?? "bg-muted")}>
       {INVOICE_STATUS_LABEL[status] ?? status}
     </Badge>
   );
 }
 
 const BAND_CLASS: Record<RiskBand, string> = {
-  A: "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30",
-  B: "bg-teal-500/15 text-teal-300 ring-1 ring-teal-500/30",
-  C: "bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30",
-  D: "bg-orange-500/15 text-orange-300 ring-1 ring-orange-500/30",
-  review: "bg-rose-500/15 text-rose-300 ring-1 ring-rose-500/30",
+  A: "bg-emerald-50 text-emerald-800",
+  B: "bg-[#197bbd]/10 text-[#197bbd]",
+  C: "bg-amber-50 text-amber-800",
+  D: "bg-orange-50 text-orange-800",
+  review: "bg-red-50 text-[#bb4430]",
 };
 
 export function RiskBandBadge({ band }: { band: RiskBand }) {

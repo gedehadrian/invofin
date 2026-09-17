@@ -98,15 +98,15 @@ export function InvoiceWizard({
           <Label htmlFor="description">Deskripsi</Label>
           <Textarea id="description" name="description" />
         </div>
-        {state.error ? <p className="text-sm text-red-400">{state.error}</p> : null}
-        {state.success ? <p className="text-sm text-teal-300">{state.success}</p> : null}
+        {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
+        {state.success ? <p className="text-sm text-primary">{state.success}</p> : null}
         <Button type="submit" disabled={pending}>
           {pending ? "Menyimpan..." : "Simpan draf"}
         </Button>
       </form>
-      <div className="space-y-4 rounded-xl border border-white/10 p-4">
+      <div className="space-y-4 surface p-4">
         <h2 className="font-medium">Unggah dokumen</h2>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground">
           SHA-256 dihitung di server. File invoice identik ditolak unique constraint.
         </p>
         {(["invoice", "purchase_order", "bast"] as const).map((type) => (
@@ -122,7 +122,7 @@ export function InvoiceWizard({
             />
           </div>
         ))}
-        {uploadMsg ? <p className="text-sm text-amber-200">{uploadMsg}</p> : null}
+        {uploadMsg ? <p className="text-sm text-amber-700">{uploadMsg}</p> : null}
         <Button
           type="button"
           variant="secondary"

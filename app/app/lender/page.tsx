@@ -37,13 +37,13 @@ export default async function LenderDashboard() {
             <Link
               key={opp.id}
               href={`/app/lender/opportunities/${opp.id}`}
-              className="rounded-xl border border-white/10 p-4 hover:border-teal-400/40"
+              className="surface p-4 hover:border-primary/30"
             >
               <div className="flex items-center justify-between">
                 <p className="font-medium">{formatIdr(Number(opp.target_amount))}</p>
                 {band ? <RiskBandBadge band={band} /> : null}
               </div>
-              <p className="mt-2 text-xs text-slate-400">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Terisi {formatIdr(Number(opp.committed_amount))} · return {opp.lender_return_percent}%
               </p>
             </Link>

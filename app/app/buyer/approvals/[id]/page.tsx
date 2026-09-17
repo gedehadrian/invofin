@@ -27,7 +27,7 @@ export default async function BuyerApprovalDetail({
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{invoice.invoice_number}</h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             {formatIdr(Number(invoice.amount))} · {formatDate(invoice.due_date)}
           </p>
         </div>
@@ -41,7 +41,7 @@ export default async function BuyerApprovalDetail({
           dueDate={invoice.due_date}
         />
       ) : (
-        <p className="text-sm text-slate-400">Invoice ini sudah diputuskan.</p>
+        <p className="text-sm text-muted-foreground">Invoice ini sudah diputuskan.</p>
       )}
     </div>
   );

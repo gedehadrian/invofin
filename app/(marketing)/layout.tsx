@@ -1,25 +1,59 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { Menu } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 
 export function MarketingHeader() {
+  const [open, setOpen] = useState(false);
+
   return (
-    <header className="flex items-center justify-between px-6 py-4">
-      <Logo />
-      <nav className="hidden items-center gap-6 text-sm text-slate-300 md:flex">
-        <Link href="/how-it-works" className="hover:text-white">
-          Cara kerja
-        </Link>
-        <Link href="/about" className="hover:text-white">
-          Tentang
-        </Link>
-        <Link href="/sign-in" className="hover:text-white">
-          Masuk
-        </Link>
-        <Button asChild>
-          <Link href="/sign-up">Daftar</Link>
+    <header className="border-b border-border bg-card">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6">
+        <Logo />
+        <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
+          <Link href="/how-it-works" className="hover:text-foreground">
+            Cara kerja
+          </Link>
+          <Link href="/about" className="hover:text-foreground">
+            Tentang
+          </Link>
+          <Link href="/sign-in" className="hover:text-foreground">
+            Masuk
+          </Link>
+          <Button asChild size="sm">
+            <Link href="/sign-up">Daftar</Link>
+          </Button>
+        </nav>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="md:hidden"
+          aria-label="Menu"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <Menu className="size-4" />
         </Button>
-      </nav>
+      </div>
+      {open ? (
+        <nav className="flex flex-col gap-1 border-t border-border px-4 py-3 text-sm md:hidden">
+          <Link href="/how-it-works" className="rounded-lg px-2 py-2 hover:bg-muted" onClick={() => setOpen(false)}>
+            Cara kerja
+          </Link>
+          <Link href="/about" className="rounded-lg px-2 py-2 hover:bg-muted" onClick={() => setOpen(false)}>
+            Tentang
+          </Link>
+          <Link href="/sign-in" className="rounded-lg px-2 py-2 hover:bg-muted" onClick={() => setOpen(false)}>
+            Masuk
+          </Link>
+          <Button asChild className="mt-1">
+            <Link href="/sign-up">Daftar</Link>
+          </Button>
+        </nav>
+      ) : null}
     </header>
   );
 }
@@ -30,12 +64,14 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(20,184,166,0.12),_transparent_45%),linear-gradient(180deg,#020617_0%,#0b1f3a_100%)]">
+    <div className="min-h-screen bg-background">
       <MarketingHeader />
       {children}
-      <footer className="border-t border-white/5 px-6 py-8 text-xs text-slate-500">
-        InvoFin adalah platform perantara. Bukan pemberi pinjaman, tidak menjamin imbal hasil, dan
-        belum mengklaim lisensi operasional. Sumber angka proposal: Agustus 2026.
+      <footer className="border-t border-border px-4 py-6 text-xs text-muted-foreground md:px-6">
+        <div className="mx-auto max-w-6xl">
+          InvoFin adalah platform perantara. Bukan pemberi pinjaman, tidak menjamin imbal hasil, dan
+          belum mengklaim lisensi operasional.
+        </div>
       </footer>
     </div>
   );

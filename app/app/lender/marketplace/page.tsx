@@ -42,20 +42,20 @@ export default async function MarketplacePage() {
             <Link
               key={opp.id}
               href={`/app/lender/opportunities/${opp.id}`}
-              className="rounded-xl border border-white/10 p-5 hover:border-teal-400/40"
+              className="surface p-5 hover:border-primary/30"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm text-slate-400">{invoice?.invoice_number}</p>
+                  <p className="text-sm text-muted-foreground">{invoice?.invoice_number}</p>
                   <p className="text-xl font-semibold">{formatIdr(Number(opp.target_amount))}</p>
                 </div>
                 {risk ? <RiskBandBadge band={risk.risk_band} /> : null}
               </div>
-              <p className="mt-3 text-sm text-slate-400">
+              <p className="mt-3 text-sm text-muted-foreground">
                 Tenor {invoice ? tenorDays(invoice.issue_date, invoice.due_date) : 0} hari · progress{" "}
                 {Math.round((Number(opp.committed_amount) / Number(opp.target_amount)) * 100)}%
               </p>
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Reason codes: {reasons.map((r) => r.code).filter(Boolean).slice(0, 4).join(", ") || "bersih"}
               </p>
             </Link>

@@ -17,10 +17,10 @@ export default async function RiskDashboard() {
   const flags = (assessments ?? []).filter((a) => Array.isArray(a.anomaly_flags) && a.anomaly_flags.length > 0);
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-end justify-between">
-        <h1 className="text-2xl font-semibold">Dasbor Risk Officer</h1>
-        <Link className="text-sm text-teal-300" href="/app/risk/queue">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <h1 className="text-xl font-semibold">Dasbor Risk Officer</h1>
+        <Link className="text-sm text-primary" href="/app/risk/queue">
           Buka antrean
         </Link>
       </div>

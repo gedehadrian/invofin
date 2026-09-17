@@ -17,7 +17,7 @@ export default async function AdminUsersPage() {
           const profile = row.profiles as { full_name?: string } | null;
           const org = row.organizations as { name?: string; type?: string } | null;
           return (
-            <li key={row.id} className="rounded-xl border border-white/10 px-4 py-3">
+            <li key={row.id} className="surface px-4 py-3">
               {profile?.full_name ?? "User"} · {row.role} · {org?.name} ({org?.type})
             </li>
           );

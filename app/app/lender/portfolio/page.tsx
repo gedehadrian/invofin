@@ -26,9 +26,9 @@ export default async function PortfolioPage() {
             status: string;
           } | null;
           return (
-            <li key={row.id} className="rounded-xl border border-white/10 px-4 py-3 text-sm">
+            <li key={row.id} className="surface px-4 py-3 text-sm">
               <p className="font-medium">{formatIdr(Number(row.amount))}</p>
-              <p className="text-slate-400">
+              <p className="text-muted-foreground">
                 {opp?.invoices?.invoice_number ?? "Invoice"} · {row.status} · opportunity {opp?.status}
               </p>
             </li>

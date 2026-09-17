@@ -39,8 +39,8 @@ export default async function BuyerDashboard() {
       ) : (
         <ul className="space-y-2 text-sm">
           {pending.map((invoice) => (
-            <li key={invoice.id} className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
-              <Link className="text-teal-300" href={`/app/buyer/approvals/${invoice.id}`}>
+            <li key={invoice.id} className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
+              <Link className="text-primary" href={`/app/buyer/approvals/${invoice.id}`}>
                 {invoice.invoice_number} · {formatIdr(Number(invoice.amount))}
               </Link>
               <StatusBadge status={invoice.status} />

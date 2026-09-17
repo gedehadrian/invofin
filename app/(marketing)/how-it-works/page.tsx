@@ -13,22 +13,22 @@ const STEPS = [
 
 export default function HowItWorksPage() {
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
-      <h1 className="text-4xl font-semibold text-white">Cara kerja InvoFin</h1>
-      <p className="mt-3 max-w-2xl text-slate-300">
+    <main className="mx-auto max-w-5xl px-4 py-10 md:px-6 md:py-12">
+      <h1 className="text-2xl font-semibold md:text-3xl">Cara kerja InvoFin</h1>
+      <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
         Risk assessment awal, bukan keputusan kredit otomatis final. Setiap risk band punya reason
         codes, dan kasus berisiko tetap ke manusia.
       </p>
-      <div className="mt-10 grid gap-4 md:grid-cols-2">
+      <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {STEPS.map(([title, body], i) => (
-          <Card key={title} className="border-white/10 bg-slate-900/60">
+          <Card key={title} size="sm">
             <CardHeader>
-              <CardTitle className="text-base">
-                <span className="mr-2 text-teal-400">{String(i + 1).padStart(2, "0")}</span>
+              <CardTitle className="text-sm">
+                <span className="mr-2 text-primary">{String(i + 1).padStart(2, "0")}</span>
                 {title}
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-slate-400">{body}</CardContent>
+            <CardContent className="text-xs leading-relaxed text-muted-foreground">{body}</CardContent>
           </Card>
         ))}
       </div>
