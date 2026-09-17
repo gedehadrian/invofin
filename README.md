@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# InvoFin
 
-## Getting Started
+Platform perantara invoice financing untuk vendor UMKM, anchor buyer, dan lender. Bukan pemberi pinjaman dari neraca sendiri, tidak menjamin imbal hasil, dan tidak mengklaim lisensi operasional.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Next.js 16 (App Router) · TypeScript · Tailwind · shadcn/ui · Supabase (Auth, Postgres, Storage, RLS) · Vercel
+
+## Mesin kepercayaan (prototipe)
+
+| Fungsi | Implementasi |
+| --- | --- |
+| OCR | Azure Document Intelligence `prebuilt-invoice` |
+| Duplikasi | SHA-256 + unique index pada file invoice |
+| Konsistensi dokumen | Rules engine di Next.js (bandingkan formulir, OCR, PO, BAST) |
+| Anomali transaksi | Isolation Forest setelah ≥ 20 invoice histori vendor |
+| Keputusan akhir | Risk Officer (maker-checker) |
+
+Jika kredensial Azure kosong, unggahan tetap diterima dan masuk `extraction_review`.
+
+## Setup lokal
+
+1. Buat project Supabase baru (jangan memakai database GiziLacak).
+2. Jalankan migrasi berurutan dari `supabase/migrations/`.
+3. Salin `.env.example` ke `.env.local` dan isi URL, anon key, service role.
+4. `npm install`
+5. `npm run dev`
+6. Seed development: `npm run seed` (jangan di production)
+
+### Akun demo setelah seed
+
+Kata sandi semua akun: `InvofinDemo!2026`
+
+- `vendor.a@invofin.demo` / `vendor.b@invofin.demo`
+- `buyer.a@invofin.demo` / `buyer.b@invofin.demo`
+- `lender.a@invofin.demo` / `lender.b@invofin.demo`
+- `admin@invofin.demo`
+- `risk@invofin.demo`
+
+## Environment
+
+```
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+NEXT_PUBLIC_SITE_URL
+AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT
+AZURE_DOCUMENT_INTELLIGENCE_KEY
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Vercel
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Hubungkan repo, framework Next.js.
+2. Isi environment variables di atas (service role hanya server).
+3. Deploy. Auth callback: `https://<domain>/auth/callback`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Skrip
 
-## Learn More
+- `npm run dev` — development
+- `npm run lint`
+- `npm run typecheck`
+- `npm test` — Isolation Forest + rules engine
+- `npm run build`
+- `npm run seed`
 
-To learn more about Next.js, take a look at the following resources:
+## Catatan Supabase free plan
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Akun ini sudah mencapai batas 2 project gratis. Pause atau upgrade project lain sebelum membuat project `invofin` baru. Jangan menerapkan migrasi ini ke database GiziLacak.
