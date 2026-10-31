@@ -26,7 +26,7 @@ export function StatusBadge({ status }: { status: InvoiceStatus | string }) {
 
 const BAND_CLASS: Record<RiskBand, string> = {
   A: "bg-emerald-50 text-emerald-800",
-  B: "bg-[#197bbd]/10 text-[#197bbd]",
+  B: "bg-primary/10 text-primary",
   C: "bg-amber-50 text-amber-800",
   D: "bg-orange-50 text-orange-800",
   review: "bg-red-50 text-[#bb4430]",

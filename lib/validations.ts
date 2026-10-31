@@ -6,7 +6,10 @@ function dateString(message: string) {
     .string(message)
     .trim()
     .regex(/^\d{4}-\d{2}-\d{2}$/, message)
-    .refine((value) => !Number.isNaN(Date.parse(value)), message);
+    .refine((value) => {
+      const timestamp = Date.parse(value);
+      return Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === value;
+    }, message);
 }
 
 export const signUpSchema = z.object({
@@ -28,9 +31,9 @@ export const invoiceDraftSchema = z.object({
   invoiceId: z.string().uuid().optional(),
   buyerOrgId: z.string().uuid("Pilih organisasi buyer."),
   invoiceNumber: z.string().trim().min(3, "Nomor invoice wajib diisi."),
-  issueDate: z.string().min(1, "Tanggal terbit wajib diisi."),
-  dueDate: z.string().min(1, "Tanggal jatuh tempo wajib diisi."),
-  amount: z.coerce.number().positive("Nominal harus lebih dari 0."),
+  issueDate: dateString("Tanggal terbit tidak valid."),
+  dueDate: dateString("Tanggal jatuh tempo tidak valid."),
+  amount: z.coerce.number().positive("Nominal harus lebih dari 0.").max(1e12, "Nominal melebihi batas pengajuan."),
   description: z.string().trim().optional(),
   requestedAdvancePercent: z.coerce.number().min(10).max(90).default(80),
 });

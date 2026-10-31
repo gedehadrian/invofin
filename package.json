@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test lib/risk/*.test.ts",
+    "test": "tsx --test lib/risk/*.test.ts lib/auth/*.test.ts lib/documents/*.test.ts lib/*.test.ts modules/dashboard/*.test.ts",
     "seed": "tsx --env-file=.env.local scripts/seed.ts"
   },
   "dependencies": {

@@ -14,11 +14,12 @@ export type ActionState = { error?: string; success?: string; invoiceId?: string
 async function assertVendorRateLimit(userId: string) {
   const admin = createAdminClient();
   const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { count } = await admin
+  const { count, error } = await admin
     .from("invoices")
     .select("id", { count: "exact", head: true })
     .eq("created_by", userId)
     .gte("created_at", since);
+  if (error) throw new Error("Batas pengajuan belum dapat diperiksa. Coba kembali.");
   if ((count ?? 0) >= 20) {
     throw new Error("Batas pengajuan tercapai. Coba lagi dalam satu jam.");
   }
@@ -104,7 +105,7 @@ export async function uploadInvoiceDocument(formData: FormData): Promise<ActionS
   }
 
   try {
-    validateUpload(file);
+    await validateUpload(file);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Berkas tidak valid." };
   }
@@ -128,7 +129,7 @@ export async function uploadInvoiceDocument(formData: FormData): Promise<ActionS
   const clash = (dupes ?? []).find((d) => d.invoice_id !== invoiceId);
   if (documentType === "invoice" && clash) {
     return {
-      error: `Dokumen invoice duplikat (SHA-256). Sudah terdaftar pada invoice ${clash.invoice_id}.`,
+      error: "Dokumen invoice sudah pernah diajukan. Hubungi tim verifikasi jika memerlukan bantuan.",
     };
   }
 

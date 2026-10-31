@@ -1,3 +1,5 @@
+import "server-only";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -27,7 +29,7 @@ export function homeForRole(role: MemberRole) {
   return ROLE_HOME[role];
 }
 
-export async function getAppContext(): Promise<AppContext | null> {
+export const getAppContext = cache(async (): Promise<AppContext | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -62,7 +64,7 @@ export async function getAppContext(): Promise<AppContext | null> {
     memberships: list,
     current,
   };
-}
+});
 
 export async function requireUser() {
   const ctx = await getAppContext();

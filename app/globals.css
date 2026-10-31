@@ -51,24 +51,24 @@
 
 :root {
   --background: #f5f7fa;
-  --foreground: #404040;
+  --foreground: #18263e;
   --card: #ffffff;
-  --card-foreground: #404040;
+  --card-foreground: #18263e;
   --popover: #ffffff;
   --popover-foreground: #404040;
-  --primary: #197bbd;
+  --primary: #2563eb;
   --primary-foreground: #ffffff;
   --secondary: #eef6fb;
   --secondary-foreground: #197bbd;
   --muted: #f3f4f6;
-  --muted-foreground: #8a8a8a;
+  --muted-foreground: #64748b;
   --accent: #eef6fb;
   --accent-foreground: #197bbd;
   --destructive: #bb4430;
   --success: #439a86;
-  --border: #eceef2;
+  --border: #e7ecf3;
   --input: #e5e7eb;
-  --ring: #197bbd;
+  --ring: #2563eb;
   --chart-1: #197bbd;
   --chart-2: #439a86;
   --chart-3: #f2994a;
@@ -79,7 +79,7 @@
   --sidebar-foreground: #404040;
   --sidebar-primary: #197bbd;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eaf4fb;
+  --sidebar-accent: #edf3ff;
   --sidebar-accent-foreground: #197bbd;
   --sidebar-border: #eceef2;
   --sidebar-ring: #197bbd;
@@ -125,13 +125,19 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+  button, select, summary { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+  ::selection { background: #dbeafe; color: #1e3a8a; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
 }
 
 @utility surface {
+  position: relative;
   border-radius: var(--radius-2xl);
   border: 1px solid var(--border);
   background: var(--card);
-  box-shadow:
-    0 0 1px rgb(0 0 0 / 0.04),
-    0 2px 6px rgb(0 0 0 / 0.04);
+  box-shadow: 0 2px 3px rgb(24 38 62 / 0.015);
 }

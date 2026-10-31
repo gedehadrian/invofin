@@ -11,7 +11,7 @@ export function MarketingHeader() {
 
   return (
     <header className="border-b border-border bg-card">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
         <Logo />
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
           <Link href="/how-it-works" className="hover:text-foreground">
@@ -20,10 +20,11 @@ export function MarketingHeader() {
           <Link href="/about" className="hover:text-foreground">
             Tentang
           </Link>
+          <Link href="/demo" className="hover:text-foreground">Demo workspace</Link>
           <Link href="/sign-in" className="hover:text-foreground">
             Masuk
           </Link>
-          <Button asChild size="sm">
+          <Button asChild>
             <Link href="/sign-up">Daftar</Link>
           </Button>
         </nav>

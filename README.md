@@ -6,6 +6,16 @@ Platform perantara invoice financing untuk vendor UMKM, anchor buyer, dan lender
 
 Next.js 16 (App Router) · TypeScript · Tailwind · shadcn/ui · Supabase (Auth, Postgres, Storage, RLS) · Vercel
 
+## Workspace baru
+
+- `/` — halaman pengenalan dengan gaya light dan biru minimalis.
+- `/demo` — preview lima peran tanpa akun; filter, pencarian, pagination, ekspor CSV, detail, dan draf invoice contoh. Perubahan demo hanya di memori dan hilang setelah reload.
+- `/app` — aplikasi asli dengan autentikasi dan pemisahan akses organisasi.
+- [Arsitektur dan alur data](docs/ARCHITECTURE.md)
+- [Design system dan komponen](docs/DESIGN_SYSTEM.md)
+
+Arsitektur saat ini modular monolith dengan batas layanan; microservices terdistribusi dijelaskan sebagai jalur pengembangan berikutnya. Demo tidak menjalankan OCR, AI credit scoring terlatih, atau transfer dana riil.
+
 ## Mesin kepercayaan (prototipe)
 
 | Fungsi | Implementasi |
