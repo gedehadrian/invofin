@@ -1,4 +1,5 @@
 import type { ExtractedFields } from "@/lib/risk/rules-engine";
+import { normalizeAzureFields, type AzureField } from "./normalize";
 
 export type ExtractionResult = {
   provider: string;
@@ -6,6 +7,8 @@ export type ExtractionResult = {
   fields: ExtractedFields;
   raw: unknown;
   processedAt: string;
+  reviewReasons?: string[];
+  confidenceByField?: Record<string, number | null>;
 };
 
 export interface DocumentExtractionProvider {
@@ -28,33 +31,6 @@ type AzureAnalyzeOperation = {
   error?: { message?: string };
 };
 
-type AzureField = {
-  type?: string;
-  content?: string;
-  valueString?: string;
-  valueDate?: string;
-  valueNumber?: number;
-  valueCurrency?: { amount?: number; currencyCode?: string };
-  confidence?: number;
-};
-
-function fieldString(field?: AzureField) {
-  return field?.valueString ?? field?.content ?? null;
-}
-
-function fieldDate(field?: AzureField) {
-  return field?.valueDate ?? field?.content ?? null;
-}
-
-function fieldAmount(field?: AzureField) {
-  if (field?.valueCurrency?.amount != null) return field.valueCurrency.amount;
-  if (field?.valueNumber != null) return field.valueNumber;
-  if (field?.content) {
-    const n = Number(field.content.replace(/[^\d.-]/g, ""));
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-}
 
 const AZURE_ANALYZE_MIME = new Set([
   "application/pdf",
@@ -81,11 +57,7 @@ function isAzureOperationUrl(url: string, endpoint: string) {
     const origin = new URL(endpoint);
     if (operation.protocol !== "https:") return false;
     const host = operation.hostname.toLowerCase();
-    return (
-      host === origin.hostname.toLowerCase() ||
-      host.endsWith(".cognitiveservices.azure.com") ||
-      host.endsWith(".api.cognitive.microsoft.com")
-    );
+    return host === origin.hostname.toLowerCase() && operation.port === origin.port && !operation.username && !operation.password;
   } catch {
     return false;
   }
@@ -145,6 +117,7 @@ export class AzureDocumentIntelligenceProvider implements DocumentExtractionProv
           "Content-Type": input.mimeType,
         },
         body: input.bytes,
+        signal: AbortSignal.timeout(20_000),
       });
 
       if (!start.ok) {
@@ -171,26 +144,13 @@ export class AzureDocumentIntelligenceProvider implements DocumentExtractionProv
       }
 
       const fields = result.analyzeResult?.documents?.[0]?.fields ?? {};
-      const mapped: ExtractedFields = {
-        invoiceNumber: fieldString(fields.InvoiceId),
-        buyerName:
-          fieldString(fields.CustomerName) ??
-          fieldString(fields.CustomerAddressRecipient),
-        vendorName: fieldString(fields.VendorName),
-        amount: fieldAmount(fields.InvoiceTotal),
-        issueDate: fieldDate(fields.InvoiceDate),
-        dueDate: fieldDate(fields.DueDate),
-        purchaseOrder: fieldString(fields.PurchaseOrder),
-        currency: fields.InvoiceTotal?.valueCurrency?.currencyCode ?? null,
-        confidence:
-          fields.InvoiceTotal?.confidence ?? fields.InvoiceId?.confidence ?? null,
-      };
-
-      const complete = Boolean(mapped.invoiceNumber || mapped.amount);
+      const normalized = normalizeAzureFields(fields);
       return {
         provider: this.name,
-        status: complete ? "completed" : "needs_review",
-        fields: mapped,
+        status: normalized.reviewReasons.length ? "needs_review" : "completed",
+        fields: normalized.fields,
+        reviewReasons: normalized.reviewReasons,
+        confidenceByField: normalized.confidenceByField,
         raw: {
           model: "prebuilt-invoice",
           filename: input.filename,
@@ -210,6 +170,7 @@ export class AzureDocumentIntelligenceProvider implements DocumentExtractionProv
     for (let i = 0; i < 20; i++) {
       const res = await fetch(url, {
         headers: { "Ocp-Apim-Subscription-Key": key },
+        signal: AbortSignal.timeout(10_000),
       });
       if (!res.ok) {
         const body = await res.text();
