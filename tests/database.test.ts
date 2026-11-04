@@ -22,6 +22,8 @@ test("PostgreSQL migrations and cross-organization authorization", async t => {
       alter default privileges in schema public grant select,insert,update,delete on tables to authenticated,service_role;
       grant execute on all functions in schema auth to anon,authenticated,service_role;`);
     for (const file of (await readdir("supabase/migrations")).filter(name => name.endsWith(".sql")).sort()) {
+      // Cloud scheduler extensions (Vault, pg_net, pg_cron) are tested on the full Supabase stack.
+      if (file.endsWith("_cloud_worker.sql")) continue;
       const sql = (await readFile(`supabase/migrations/${file}`, "utf8")).replace('create extension if not exists "pgcrypto";', "-- gen_random_uuid is built into PostgreSQL");
       await db.exec(sql);
     }

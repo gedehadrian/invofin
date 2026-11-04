@@ -142,24 +142,19 @@ export function InvoiceWizard({
           Dokumen masuk ke penyimpanan privat, diverifikasi, lalu diperiksa di latar belakang. Unggah ketiga dokumen sebelum mengajukan.
         </p>
         <p className="text-xs text-muted-foreground">
-          Belum punya file? Unduh{" "}
-          <a
-            href="/demo/dummy-invoice.pdf"
-            download="dummy-invoice.pdf"
-            className="font-medium text-primary underline-offset-2 hover:underline"
-          >
-            contoh 1
-          </a>{" "}
-          (INV-DEMO-2026-001 · 17 Sep–17 Okt · Rp 25.000.000) atau{" "}
-          <a
-            href="/demo/dummy-invoice-2.pdf"
-            download="dummy-invoice-2.pdf"
-            className="font-medium text-primary underline-offset-2 hover:underline"
-          >
-            contoh 2
-          </a>{" "}
-          (INV-DEMO-2026-002 · 17 Sep–1 Nov · Rp 30.000.000), lalu unggah di kolom invoice. File yang
-          sama hanya bisa dipakai sekali (SHA-256 unik).
+          Untuk mencoba, unduh{" "}
+          {([
+            ["invoice", "Invoice"],
+            ["purchase-order", "PO"],
+            ["bast", "BAST"],
+          ] as const).map(([file, label], index) => (
+            <span key={file}>
+              {index > 0 ? " · " : ""}
+              <a href={`/demo/prototype-${file}.pdf`} download className="font-medium text-primary underline-offset-2 hover:underline">{label}</a>
+            </span>
+          ))}.
+          {" "}Data contoh: PROTO-2026-001, 4 Nov–18 Des 2026, Rp 25.000.000.
+          Berkas invoice yang sama tidak dapat diajukan dua kali.
         </p>
         {(["invoice", "purchase_order", "bast"] as const).map((type) => (
           <div key={type} className="space-y-1">

@@ -140,4 +140,3 @@ export async function decideBuyer(
     success: "Invoice dikonfirmasi. Keputusan akhir menunggu Risk Officer.",
   };
 }
-

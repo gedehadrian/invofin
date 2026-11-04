@@ -10,6 +10,9 @@ const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) {
   throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
 }
+if (!["127.0.0.1", "localhost", "[::1]"].includes(new URL(url).hostname)) {
+  throw new Error("Development seed requires a loopback Supabase URL. Cloud prototype setup uses scripts/seed-prototype.mjs.");
+}
 
 const supabase = createClient(url, key, {
   auth: { persistSession: false, autoRefreshToken: false },

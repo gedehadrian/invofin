@@ -14,9 +14,14 @@ flowchart LR
   Actions --> Auth
   DAL --> DB[(Postgres + RLS)]
   Actions --> DB
-  Actions --> Docs[Dokumen + fingerprint]
-  Docs --> Storage[Private Storage]
-  Docs --> OCR[Adapter Azure OCR]
+  Actions --> Docs[Reservasi + verifikasi dokumen]
+  UI --> Quarantine[Private quarantine upload]
+  Docs --> Storage[Private canonical storage]
+  Docs --> Jobs[(Durable document jobs)]
+  Cron[Supabase Cron + Vault] --> Worker[Worker Vercel / satu leased job]
+  Jobs --> Worker
+  Worker --> Storage
+  Worker --> OCR[Adapter Azure / review manual]
   Actions --> Risk[Rules + Isolation Forest]
   DB --> Audit[Audit + notifikasi]
 ```
@@ -44,16 +49,17 @@ Dashboard overview memakai DAL server-only baru di `modules/dashboard/data.ts`. 
 2. Server memvalidasi pengguna melalui `auth.getUser()` dan membership. Konteks sesi di-cache hanya sepanjang request React, bukan lintas pengguna.
 3. Query pengguna memakai session client supaya RLS tetap berlaku. Dashboard membatasi query, memilih field eksplisit, dan menghasilkan DTO tanpa dokumen mentah, rekening, token, atau kredensial.
 4. Data vendor/buyer dibatasi organisasi. Lender menerima ringkasan peluang; akses dokumen mentah tetap ditolak.
-5. Upload dibatasi 10 MB, allowlist MIME dan pemeriksaan signature. Signature bukan pemindai malware atau pembuktian keaslian dokumen. Berkas tetap berada di bucket privat, diakses memakai signed URL singkat.
+5. Upload dibatasi 10 MB, allowlist MIME dan pemeriksaan signature. Browser mengunggah langsung dengan signed upload token ke quarantine privat; server memeriksa byte/hash sebelum menyalin ke bucket canonical privat dan mendaftarkan pekerjaan atomik. Signature bukan pemindai malware atau pembuktian keaslian dokumen.
 6. Callback auth hanya mengizinkan tujuan workspace di origin yang sama. Service-role client diberi batas `server-only`.
 7. Ekspor CSV menetralkan awalan formula. Header nosniff, frame denial, referrer policy, dan permissions policy diterapkan.
-8. Tidak ada perubahan database live atau transaksi uang dalam pekerjaan ini. Migrasi/RLS lama harus diuji terhadap database InvoFin khusus sebelum pilot.
+8. Keputusan vendor/buyer/risk, audit dan perubahan status terkait berjalan melalui RPC terbatas service-role dengan pemeriksaan membership aktif dan row lock. Komitmen lender menggunakan idempotency key dan transaksi terkunci. Service-role melewati RLS sehingga pemeriksaan aktor pada RPC tetap wajib.
+9. Worker memakai lease 90 detik dan maksimal tiga percobaan, dengan token Bearer yang hanya berada di server dan Vault. Hasil tersimpan berupa field, confidence dan reason code, tanpa payload OCR mentah. BAST memerlukan pemeriksaan manual.
 
 Ringkasan dashboard memuat hingga 500 invoice terbaru, marketplace 100 peluang, komitmen 1.000 baris. Angka yang ditampilkan mengikuti subset tersebut; untuk skala produksi ganti dengan agregasi SQL terotorisasi dan pagination server. Grafik menunjukkan nilai invoice pada status saat ini berdasarkan bulan pengajuan, bukan riwayat pergerakan saldo.
 
 ## Pemisahan microservices berikutnya
 
-1. **Document Processing**: kandidat pertama jika OCR melampaui batas request. Upload membuat pekerjaan durable, worker mengambil object privat, menyimpan hasil dan status. Kontrak job: `jobId`, `invoiceId`, `documentId`, `version`, `correlationId`; jangan membawa signed URL kedaluwarsa di antrean.
+1. **Document Processing**: antrean durable dan worker bounded telah diterapkan. Ekstrak worker ke layanan sendiri jika OCR melampaui batas serverless. Antrean menyimpan referensi object, bukan signed URL yang dapat kedaluwarsa.
 2. **Risk Assessment**: pekerja terpisah dengan versi model, input snapshot, reason codes dan audit. AI merupakan rekomendasi; keputusan Risk Officer tetap eksplisit. Gradient Boosting/SHAP sesuai proposal belum diimplementasikan.
 3. **Funding & Ledger**: dipisahkan saat payment provider dan ledger sudah dipilih. Gunakan integer minor units, transaksi atomik, idempotency key, webhook signature, dan rekonsiliasi sebelum pencairan nyata.
 4. **Notifications**: konsumen event setelah transaksi commit.
@@ -62,6 +68,6 @@ Untuk lintas layanan gunakan transactional outbox, consumer idempotent, retry te
 
 ## Batas verifikasi dan kebutuhan pilot
 
-Demo `/demo` memakai fixture sintetis dan state di memori. Pilihan peran demo tidak mengubah membership akun asli. Reload mengembalikan data contoh. Backend autentikasi, upload privat, OCR, RLS lintas organisasi, race condition komitmen dan audit harus diverifikasi dalam lingkungan staging terisolasi sebelum digunakan untuk data nyata. Jangan mengandalkan hitungan rate limit aplikasi sebagai batas transaksi atomik pada traffic serentak.
+Demo `/demo` memakai fixture sintetis dan state di memori. Pilihan peran demo tidak mengubah membership akun asli. Reload mengembalikan data contoh. Pengujian PostgreSQL dan Supabase lokal mencakup RLS lintas organisasi, upload privat, worker, keputusan atomik serta komitmen paralel. Live smoke Azure memakai invoice sintetis. Bukti ini belum menggantikan audit keamanan lengkap atau evaluasi model dengan data representatif. Hitungan rate limit unggah aplikasi belum atomik pada traffic serentak; cleanup object yatim dan monitoring antrean masih perlu diterapkan sebelum pilot.
 
 Rujukan: [Next.js data security](https://nextjs.org/docs/app/guides/data-security), [Supabase SSR](https://supabase.com/docs/guides/auth/server-side/creating-a-client).

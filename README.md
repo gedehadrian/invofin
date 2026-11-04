@@ -1,78 +1,48 @@
 # InvoFin
 
-Platform perantara invoice financing untuk vendor UMKM, anchor buyer, dan lender. Bukan pemberi pinjaman dari neraca sendiri, tidak menjamin imbal hasil, dan tidak mengklaim lisensi operasional.
+Prototipe invoice financing dengan lima peran: vendor, buyer, lender, Risk Officer dan admin. Next.js 16, TypeScript, Tailwind, komponen Radix/shadcn, ikon Lucide, Supabase Auth/Postgres/Storage, Azure Document Intelligence dan Vercel.
 
-## Stack
+- `/` — halaman pengenalan, light dan biru minimalis.
+- `/demo` — contoh lima peran tanpa login; perubahan hanya di memori.
+- `/app` — autentikasi, data tersimpan, dokumen privat dan workflow organisasi.
+- [Panduan prototipe online dan pekerjaan berikutnya](docs/PROTOTYPE.md)
+- [Arsitektur](docs/ARCHITECTURE.md) · [Design system](docs/DESIGN_SYSTEM.md) · [Verifikasi](docs/VERIFICATION.md)
 
-Next.js 16 (App Router) · TypeScript · Tailwind · shadcn/ui · Supabase (Auth, Postgres, Storage, RLS) · Vercel
+Arsitektur berupa modular monolith dengan antrean dokumen durable. Worker dapat dipisahkan saat beban membutuhkan layanan sendiri. Komitmen pendanaan adalah simulasi pencatatan; belum ada pencairan atau pembayaran nyata.
 
-## Workspace baru
+## Menjalankan lokal
 
-- `/` — halaman pengenalan dengan gaya light dan biru minimalis.
-- `/demo` — preview lima peran tanpa akun; filter, pencarian, pagination, ekspor CSV, detail, dan draf invoice contoh. Perubahan demo hanya di memori dan hilang setelah reload.
-- `/app` — aplikasi asli dengan autentikasi dan pemisahan akses organisasi.
-- [Arsitektur dan alur data](docs/ARCHITECTURE.md)
-- [Design system dan komponen](docs/DESIGN_SYSTEM.md)
+Prasyarat: Node.js, npm dan Docker Desktop aktif. Konfigurasi cloud di `.env.local` tetap terpisah dari pengujian lokal.
 
-Arsitektur saat ini modular monolith dengan batas layanan; microservices terdistribusi dijelaskan sebagai jalur pengembangan berikutnya. Demo tidak menjalankan OCR, AI credit scoring terlatih, atau transfer dana riil.
-
-## Mesin kepercayaan (prototipe)
-
-| Fungsi | Implementasi |
-| --- | --- |
-| OCR | Azure Document Intelligence `prebuilt-invoice` |
-| Duplikasi | SHA-256 + unique index pada file invoice |
-| Konsistensi dokumen | Rules engine di Next.js (bandingkan formulir, OCR, PO, BAST) |
-| Anomali transaksi | Isolation Forest setelah ≥ 20 invoice histori vendor |
-| Keputusan akhir | Risk Officer (maker-checker) |
-
-Jika kredensial Azure kosong, unggahan tetap diterima dan masuk `extraction_review`.
-
-## Setup lokal
-
-1. Buat project Supabase baru (jangan memakai database GiziLacak).
-2. Jalankan migrasi berurutan dari `supabase/migrations/`.
-3. Salin `.env.example` ke `.env.local` dan isi URL, anon key, service role.
-4. `npm install`
-5. `npm run dev`
-6. Seed development: `npm run seed` (jangan di production)
-
-### Akun demo setelah seed
-
-Kata sandi semua akun: `InvofinDemo!2026`
-
-- `vendor.a@invofin.demo` / `vendor.b@invofin.demo`
-- `buyer.a@invofin.demo` / `buyer.b@invofin.demo`
-- `lender.a@invofin.demo` / `lender.b@invofin.demo`
-- `admin@invofin.demo`
-- `risk@invofin.demo`
-
-## Environment
-
-```
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
-NEXT_PUBLIC_SITE_URL
-AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT
-AZURE_DOCUMENT_INTELLIGENCE_KEY
+```sh
+npm ci
+npx --yes supabase@3.0.0 start --exclude studio,imgproxy,logflare,vector,supavisor,edge-runtime,realtime
+npm run setup:local
+npm run dev:local
 ```
 
-## Vercel
+Pada terminal kedua: `npm run worker:local`. URL lokal `http://127.0.0.1:3100`. Setup membuat `.env.test.local` yang diabaikan Git dengan OCR manual. Jangan memakai `db reset --remote` pada project cloud.
 
-1. Hubungkan repo, framework Next.js.
-2. Isi environment variables di atas (service role hanya server).
-3. Deploy. Auth callback: `https://<domain>/auth/callback`.
+```sh
+npm test
+npm run test:db
+npm run test:local
+npm run typecheck
+npm run build
+```
 
-## Skrip
+`test:db` menjalankan migrasi pada PostgreSQL PGlite. `test:local` membutuhkan layanan lokal dan dev server, membuat akun serta invoice sintetis, dan menolak URL non-loopback. Seed development lama juga dibatasi loopback.
 
-- `npm run dev` — development
-- `npm run lint`
-- `npm run typecheck`
-- `npm test` — Isolation Forest + rules engine
-- `npm run build`
-- `npm run seed`
+## OCR dan risiko
 
-## Catatan Supabase free plan
+Azure `prebuilt-invoice` mengekstrak invoice/PO dengan normalisasi nominal, tanggal dan confidence per field. BAST masuk pemeriksaan manual. Hasil yang kosong atau tidak pasti wajib ditinjau manusia. Unggahan tidak menunggu OCR: pekerjaan disimpan di database dengan lease dan retry terbatas.
 
-Akun ini sudah mencapai batas 2 project gratis. Pause atau upgrade project lain sebelum membuat project `invofin` baru. Jangan menerapkan migrasi ini ke database GiziLacak.
+Rules engine memeriksa konsistensi dokumen dan duplikasi; Isolation Forest baru digunakan jika histori vendor cukup. Keduanya memberi sinyal pemeriksaan, belum merupakan model fraud atau credit scoring yang tervalidasi. Lihat [evaluasi OCR](evaluation/README.md). `npm run eval:ocr -- --live --manifest evaluation/ocr.synthetic.json` mengirim satu dokumen sintetis ke Azure dan dapat memakai kuota provider.
+
+## Deployment yang sudah ada
+
+Target Supabase InvoFin: `skwwgjjgeativyevkkpl`. Target Vercel: project `invofin`. Salin nama konfigurasi dari `.env.example`; jangan commit secret. Service-role dan Azure key hanya digunakan server. `CRON_SECRET` disimpan di Vercel serta Supabase Vault, lalu Supabase Cron memanggil worker setiap menit jika ada pekerjaan.
+
+Setelah migrasi diterapkan, `node scripts/configure-cloud-worker.mjs --apply` mengonfigurasi environment Production dan Vault melalui stdin/API tanpa mencetak secret. Deploy ulang aplikasi setelah konfigurasi. `node scripts/seed-prototype.mjs --apply` membuat lima identitas sintetis khusus pada target InvoFin dan menyimpan kredensial di `.env.prototype.local`, tanpa menimpa organisasi atau invoice lain.
+
+File migrasi awal memakai timestamp yang sama dengan riwayat cloud yang telah diperiksa. Jangan mengubah riwayat remote menjadi reverted atau menjalankan ulang baseline.

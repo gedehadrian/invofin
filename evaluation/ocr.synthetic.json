@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "datasetKind": "synthetic",
+  "cases": [{
+    "id": "synthetic-invoice-001",
+    "file": "public/demo/dummy-invoice.pdf",
+    "mimeType": "application/pdf",
+    "expected": {
+      "invoiceNumber": "INV-DEMO-2026-001",
+      "buyerName": "PT Anchor Manufaktur",
+      "vendorName": "PT Sari Komponen",
+      "amount": 25000000,
+      "issueDate": "2026-09-17",
+      "dueDate": "2026-10-17"
+    }
+  }]
+}

@@ -17,8 +17,7 @@ export default async function NewInvoicePage() {
       <div>
         <h1 className="text-2xl font-semibold">Ajukan invoice</h1>
         <p className="text-sm text-muted-foreground">
-          Lengkapi data, unggah dokumen, lalu ajukan. OCR memakai Azure prebuilt-invoice bila
-          kredensial tersedia.
+          Lengkapi data, unggah ketiga dokumen, lalu tinjau hasil pemeriksaan sebelum mengajukan ke buyer.
         </p>
       </div>
       <InvoiceWizard buyers={buyers ?? []} />

@@ -1,0 +1,10 @@
+.env*
+.git
+.next
+node_modules
+tests
+tools
+evaluation/private
+evaluation/reports
+supabase/.temp
+tmp
