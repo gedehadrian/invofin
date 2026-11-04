@@ -48,6 +48,10 @@ test("PostgreSQL migrations and cross-organization authorization", async t => {
       await assert.rejects(asUser(1,()=>db.query("insert into organization_members(user_id,organization_id,role) values($1,$2,'admin')",[uid(1),uid(15)])));
       await assert.rejects(asUser(1,()=>db.query("insert into organizations(name,type,status) values('Fake','platform','active')")));
     });
+    await t.test("anonymous clients cannot call role helpers and trigger functions are internal", async () => {
+      const privileges = await db.query<{anon_helper:boolean;authenticated_helper:boolean;trigger_rpc:boolean}>("select has_function_privilege('anon','public.is_admin()','execute') as anon_helper,has_function_privilege('authenticated','public.is_admin()','execute') as authenticated_helper,has_function_privilege('authenticated','public.handle_new_user()','execute') as trigger_rpc");
+      assert.deepEqual(privileges.rows[0], {anon_helper:false,authenticated_helper:true,trigger_rpc:false});
+    });
     await t.test("vendor cannot forge funding status, ownership or other-tenant invoice", async () => {
       await assert.rejects(asUser(1,()=>db.query("update invoices set status='funded' where id=$1",[uid(21)])));
       await assert.rejects(asUser(1,()=>db.query("update invoices set buyer_org_id=$1 where id=$2",[uid(12),uid(21)])));
