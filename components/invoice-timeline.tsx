@@ -1,5 +1,5 @@
 import { StatusBadge } from "@/components/status-badge";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, INVOICE_STATUS_LABEL } from "@/lib/format";
 import type { StatusHistory } from "@/lib/database.types";
 
 // Alur nyata yang ditulis aplikasi. Status 'submitted' masih ada di enum database
@@ -43,7 +43,7 @@ export function InvoiceTimeline({
                     : "border-border text-muted-foreground"
               }`}
             >
-              {step.replaceAll("_", " ")}
+              {INVOICE_STATUS_LABEL[step] ?? step}
             </li>
           );
         })}

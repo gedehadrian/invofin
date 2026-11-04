@@ -49,9 +49,8 @@ export const SEVERITY: Record<ReasonCode, number> = {
 };
 
 /**
- * Temuan yang mengindikasikan dokumen tidak sesuai dengan data yang diajukan.
- * Satu saja sudah cukup untuk memaksa band "review", berapa pun skornya, agar
- * invoice palsu tidak tampil sebagai A/B/C di marketplace.
+ * Ketidaksesuaian atau ekstraksi invoice yang belum dapat dipercaya memerlukan
+ * band "review" berapa pun skornya. Ini sinyal pemeriksaan, bukan bukti fraud.
  */
 export const CRITICAL_CODES: ReadonlySet<ReasonCode> = new Set([
   "DUPLICATE_INVOICE_FILE",
@@ -61,6 +60,7 @@ export const CRITICAL_CODES: ReadonlySet<ReasonCode> = new Set([
   "BAST_AMOUNT_MISMATCH",
   "BUYER_NAME_MISMATCH",
   "VENDOR_NAME_MISMATCH",
+  "OCR_NEEDS_REVIEW",
 ]);
 
 export type ExtractedFields = {
@@ -190,11 +190,7 @@ export function runDocumentConsistencyRules(args: {
   }
 
   const extractedInvoice = invoiceDoc?.extracted;
-  if (
-    invoiceDoc &&
-    invoiceDoc.extractionStatus !== "completed" &&
-    invoiceDoc.extractionStatus !== "needs_review"
-  ) {
+  if (invoiceDoc && invoiceDoc.extractionStatus !== "completed") {
     add("OCR_NEEDS_REVIEW");
   }
 

@@ -55,8 +55,7 @@ export default async function VendorInvoiceDetail({
         <div className="surface p-4">
           <h2 className="font-medium">Ekstraksi OCR</h2>
           <p className="mt-2 text-xs text-muted-foreground">
-            Provider: {invoiceDoc?.extraction_provider ?? "belum jalan"} · status{" "}
-            {invoiceDoc?.extraction_status ?? "—"}
+            {processing ? "Pemeriksaan dokumen sedang berjalan." : invoiceDoc?.extraction_status === "completed" ? "Ekstraksi selesai. Tinjau data sebelum mengonfirmasi." : "Hasil ekstraksi memerlukan pemeriksaan manual."}
           </p>
           <ExtractionProgress processing={processing} />
           <dl className="mt-4 space-y-3 text-xs">{[["Nomor invoice", "invoiceNumber"], ["Vendor", "vendorName"], ["Buyer", "buyerName"], ["Nominal", "amount"], ["Terbit", "issueDate"], ["Jatuh tempo", "dueDate"]].map(([label, key]) => <div key={key} className="flex justify-between gap-4 border-b pb-2"><dt className="text-muted-foreground">{label}</dt><dd className="text-right font-medium">{extracted?.[key] == null ? "Perlu diperiksa" : key === "amount" ? formatIdr(Number(extracted[key])) : String(extracted[key])}</dd></div>)}</dl>
@@ -81,14 +80,15 @@ export default async function VendorInvoiceDetail({
           )}
         </div>
         <div className="surface p-4">
-          <h2 className="font-medium">Risk assessment awal</h2>
+          <h2 className="font-medium">Penilaian risiko awal</h2>
           {latestRisk ? (
             <div className="mt-2 space-y-2 text-sm">
               <RiskBandBadge band={latestRisk.risk_band as RiskBand} />
-              <p>Skor {latestRisk.score} · {latestRisk.assessment_method}</p>
+              <p>Skor aturan awal: {latestRisk.score}/100</p>
+              <p className="text-xs text-muted-foreground">Indikator prototipe, belum merupakan model risiko kredit yang tervalidasi.</p>
               <p className="text-muted-foreground">
                 Keputusan akhir: Risk Officer
-                {latestRisk.decision ? ` (${latestRisk.decision})` : " (menunggu)"}
+                {latestRisk.decision === "approved" ? " (disetujui)" : latestRisk.decision === "rejected" ? " (ditolak)" : " (menunggu)"}
               </p>
             </div>
           ) : (

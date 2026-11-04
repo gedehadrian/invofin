@@ -5,7 +5,7 @@ Target aplikasi: https://invofin-gede-hadrians-projects.vercel.app. Gunakan data
 ## Mencoba alur lengkap
 
 1. Jalankan seed prototipe sekali pada mesin operator: `node scripts/seed-prototype.mjs --apply`. Akun khusus vendor/buyer/lender/risk/admin dan password acak tersimpan di `.env.prototype.local` yang diabaikan Git. Jangan membagikan akun admin secara publik.
-2. Login vendor, buat invoice `PROTO-2026-001`, pilih `Integration buyer`, tanggal 4 November 2026, jatuh tempo 18 Desember 2026, nominal Rp25.000.000 dan advance 80%.
+2. Login vendor dan buka `PROTO-2026-001` yang telah disiapkan saat smoke test: Rp25.000.000, jatuh tempo 18 Desember 2026, berstatus sebagian terdanai. Untuk mencoba pengajuan baru, buat nomor dan dokumen sintetis baru; contoh berikut menjelaskan data fixture awal: buyer `Integration buyer`, tanggal 4 November 2026, advance 80%.
 3. Unduh tiga dokumen sintetis dari form unggah: Invoice, PO dan BAST. Simpan draft, unggah ketiganya, lalu ajukan.
 4. Tunggu pemrosesan latar belakang. OCR invoice/PO menggunakan Azure; BAST diperiksa manual. Vendor memeriksa field dengan dokumen sumber lalu mencentang konfirmasi.
 5. Login buyer dan konfirmasi atau sengketakan invoice. Konfirmasi membuat penilaian risiko untuk ditinjau Risk Officer.
@@ -36,4 +36,4 @@ Invoice PDF yang sama tidak dapat diajukan kembali. Untuk demonstrasi berulang g
 | Sebelum pilot | Model risiko kredit | Histori pembayaran berizin, label default, split waktu, baseline, kalibrasi, explainability dan pemantauan drift |
 | Sebelum transaksi nyata | Payment dan ledger | Provider, webhook terverifikasi, ledger berpasangan, rekonsiliasi, idempotensi pencairan dan review legal |
 
-Azure tetap dipakai untuk OCR awal karena integrasinya tersedia. Model Hugging Face belum dipasang: pilih setelah benchmark dengan data representatif dan kebutuhan operasi jelas. Confidence OCR bukan probabilitas dokumen asli, dan anomali bukan bukti fraud. Invoice sintetis menguji alur serta parser, bukan akurasi model terhadap dokumen dunia nyata.
+Azure tetap dipakai untuk OCR awal karena integrasinya tersedia. Model Hugging Face belum dipasang: pilih setelah benchmark dengan data representatif dan kebutuhan operasi jelas. Confidence OCR bukan probabilitas dokumen asli, dan anomali bukan bukti fraud. Ekstraksi invoice yang belum pasti memaksa band `review` pada penilaian baru; keputusan manusia tetap eksplisit. Invoice sintetis menguji alur serta parser, bukan akurasi model terhadap dokumen dunia nyata. Penilaian historis tidak ditulis ulang saat aturan berubah.

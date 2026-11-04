@@ -35,7 +35,7 @@ const BAND_CLASS: Record<RiskBand, string> = {
 export function RiskBandBadge({ band }: { band: RiskBand }) {
   return (
     <span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold", BAND_CLASS[band])}>
-      Risk {band}
+      {band === "review" ? "Perlu ditinjau" : `Risiko ${band}`}
     </span>
   );
 }

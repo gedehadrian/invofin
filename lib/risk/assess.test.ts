@@ -42,6 +42,14 @@ test("honest invoice matching the OCR keeps a good band", () => {
   assert.equal(result.anomalyFlags.length, 0);
 });
 
+test("uncertain invoice OCR forces review even when extracted fields match", () => {
+  for (const status of ["needs_review", "failed", "pending"]) {
+    const result = runRiskAssessment({ invoice: honest, documents: documents.map(doc => doc.documentType === "invoice" ? { ...doc, extractionStatus: status } : doc), vendorHistory: [], azureConfigured: true });
+    assert.equal(result.riskBand, "review");
+    assert.ok(result.reasonCodes.some(reason => reason.code === "OCR_NEEDS_REVIEW"));
+  }
+});
+
 test("inflated amount forces review regardless of score", () => {
   const result = assess({ ...honest, amount: 250_000_000 });
   assert.ok(result.score >= 60, "score alone would still look fundable");
