@@ -11,9 +11,8 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      // Unggahan dokumen lewat Server Action dibatasi 1MB secara bawaan, sedangkan
-      // validateUpload() mengizinkan sampai 10MB. Beri ruang untuk overhead multipart.
-      bodySizeLimit: "12mb",
+      // File bytes go directly to private Storage; actions carry metadata only.
+      bodySizeLimit: "1mb",
     },
   },
 };

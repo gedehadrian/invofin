@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/auth/session";
 import { extractedFromJson, runRiskAssessment } from "@/lib/risk/assess";
-import { AzureDocumentIntelligenceProvider } from "@/lib/documents/azure";
 import { buyerDecisionSchema } from "@/lib/validations";
 import type { DocumentSnapshot } from "@/lib/risk/rules-engine";
 
@@ -39,39 +38,10 @@ export async function decideBuyer(
     return { error: "Invoice tidak berada dalam antrean konfirmasi buyer." };
   }
 
-  // Satu invoice hanya boleh punya satu baris konfirmasi (unique invoice_id). Percobaan
-  // sebelumnya yang gagal di tengah jalan harus bisa dilanjutkan, bukan buntu permanen.
-  const { data: existing, error: existingError } = await supabase
-    .from("buyer_confirmations")
-    .select("id, decision")
-    .eq("invoice_id", invoice.id)
-    .maybeSingle();
-  if (existingError) return { error: existingError.message };
-  if (existing && existing.decision !== parsed.data.decision) {
-    return {
-      error:
-        "Invoice ini sudah pernah diputuskan dengan keputusan berbeda. Muat ulang halaman.",
-    };
-  }
-
   if (parsed.data.decision === "disputed") {
-    if (!existing) {
-      const { error: confError } = await supabase.from("buyer_confirmations").insert({
-        invoice_id: invoice.id,
-        buyer_org_id: ctx.current.organization_id,
-        decision: "disputed",
-        note: parsed.data.note,
-        decided_by: ctx.userId,
-      });
-      if (confError) return { error: friendlyBuyerError(confError.message) };
-    }
-    const { error: statusError } = await supabase
-      .from("invoices")
-      .update({ status: "rejected" })
-      .eq("id", invoice.id);
-    if (statusError) return { error: friendlyBuyerError(statusError.message) };
+    const { error } = await createAdminClient().rpc("decide_buyer_invoice", { p_invoice: invoice.id, p_actor: ctx.userId, p_buyer: ctx.current.organization_id, p_decision: "disputed", p_amount: null, p_due: null, p_note: parsed.data.note, p_assessment: null });
+    if (error) return { error: "Keputusan belum tersimpan. Muat ulang untuk memeriksa status invoice." };
     revalidatePath("/app/buyer/approvals");
-    revalidatePath(`/app/buyer/approvals/${invoice.id}`);
     return { success: "Invoice disengketakan." };
   }
 
@@ -91,6 +61,7 @@ export async function decideBuyer(
     document_type: DocumentSnapshot["documentType"];
     sha256: string;
     extraction_status: string;
+    extraction_provider: string | null;
     extracted_data: unknown;
   }>;
 
@@ -149,7 +120,7 @@ export async function decideBuyer(
         dueDate: h.due_date,
         requestedAdvancePercent: h.requested_advance_percent,
       })),
-      azureConfigured: new AzureDocumentIntelligenceProvider().isConfigured(),
+      azureConfigured: docs.some(doc => doc.extraction_provider?.startsWith("azure-document-intelligence")),
     });
   } catch (error) {
     return {
@@ -159,43 +130,8 @@ export async function decideBuyer(
     };
   }
 
-  if (!existing) {
-    const { error: confError } = await supabase.from("buyer_confirmations").insert({
-      invoice_id: invoice.id,
-      buyer_org_id: ctx.current.organization_id,
-      decision: "confirmed",
-      confirmed_amount: parsed.data.confirmedAmount,
-      confirmed_due_date: parsed.data.confirmedDueDate,
-      note: parsed.data.note ?? null,
-      decided_by: ctx.userId,
-    });
-    if (confError) return { error: friendlyBuyerError(confError.message) };
-  }
-
-  const { error: riskError } = await admin.from("risk_assessments").insert({
-    invoice_id: invoice.id,
-    score: assessment.score,
-    risk_band: assessment.riskBand,
-    reason_codes: assessment.reasonCodes,
-    anomaly_flags: assessment.anomalyFlags,
-    assessment_method: assessment.assessmentMethod,
-    requires_manual_review: true,
-  });
-  if (riskError) {
-    return {
-      error: `Hasil penilaian risiko gagal disimpan: ${riskError.message}. Invoice tetap menunggu konfirmasi, silakan coba lagi.`,
-    };
-  }
-
-  const { error: statusError } = await supabase
-    .from("invoices")
-    .update({ status: "risk_review" })
-    .eq("id", invoice.id);
-  if (statusError) {
-    return {
-      error: `Status invoice gagal diperbarui: ${statusError.message}. Silakan coba lagi.`,
-    };
-  }
+  const { error: decisionError } = await admin.rpc("decide_buyer_invoice", { p_invoice: invoice.id, p_actor: ctx.userId, p_buyer: ctx.current.organization_id, p_decision: "confirmed", p_amount: parsed.data.confirmedAmount, p_due: parsed.data.confirmedDueDate, p_note: parsed.data.note ?? null, p_assessment: JSON.parse(JSON.stringify(assessment)) });
+  if (decisionError) return { error: "Keputusan dan asesmen belum tersimpan. Muat ulang untuk memeriksa status invoice." };
 
   revalidatePath("/app/buyer/approvals");
   revalidatePath(`/app/buyer/approvals/${invoice.id}`);
@@ -205,12 +141,3 @@ export async function decideBuyer(
   };
 }
 
-function friendlyBuyerError(message: string) {
-  if (message.includes("buyer_confirmations_invoice_id_key")) {
-    return "Invoice ini sudah pernah diputuskan. Muat ulang halaman.";
-  }
-  if (message.includes("buyer_confirmations_check")) {
-    return "Konfirmasi wajib menyertakan nominal dan tanggal jatuh tempo yang valid.";
-  }
-  return message;
-}

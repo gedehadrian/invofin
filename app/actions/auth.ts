@@ -73,9 +73,7 @@ export async function signUpAction(
       full_name: parsed.data.fullName,
     });
 
-    const writer = process.env.SUPABASE_SERVICE_ROLE_KEY
-      ? createAdminClient()
-      : supabase;
+    const writer = createAdminClient();
     const { data: org, error: orgError } = await writer
       .from("organizations")
       .insert({

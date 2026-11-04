@@ -36,6 +36,18 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      document_uploads: {
+        Row: DocumentUpload;
+        Insert: Omit<DocumentUpload, "created_at" | "expires_at" | "document_id"> & { created_at?: string; expires_at?: string; document_id?: string | null };
+        Update: Partial<Pick<DocumentUpload, "document_id">>;
+        Relationships: [];
+      };
+      document_jobs: {
+        Row: DocumentJob;
+        Insert: { document_id: string };
+        Update: Partial<Pick<DocumentJob, "status" | "last_error_code">>;
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;
@@ -456,6 +468,13 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      confirm_invoice_extraction: { Args: { p_invoice_id: string; p_actor: string; p_vendor: string; p_number: string; p_issue: string; p_due: string; p_amount: number }; Returns: boolean };
+      decide_buyer_invoice: { Args: { p_invoice: string; p_actor: string; p_buyer: string; p_decision: string; p_amount: number | null; p_due: string | null; p_note: string | null; p_assessment: Json | null }; Returns: boolean };
+      decide_risk_invoice: { Args: { p_invoice: string; p_actor: string; p_decision: string; p_note: string; p_target: number; p_vendor_fee: number; p_lender_return: number }; Returns: boolean };
+      commit_funding_once: { Args: { p_opportunity: string; p_amount: number; p_request: string }; Returns: Database["public"]["Tables"]["funding_commitments"]["Row"] };
+      complete_document_upload: { Args: { p_upload_id: string; p_sha256: string; p_size: number; p_mime: string }; Returns: Database["public"]["Tables"]["invoice_documents"]["Row"] };
+      claim_document_job: { Args: Record<string, never>; Returns: DocumentJob[] };
+      finish_document_job: { Args: { p_job_id: string; p_lease_token: string; p_status: string; p_provider: string; p_data: Json }; Returns: boolean };
       create_funding_commitment: {
         Args: { p_opportunity_id: string; p_amount: number };
         Returns: Database["public"]["Tables"]["funding_commitments"]["Row"];
@@ -492,6 +511,16 @@ export interface Database {
 }
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+export type DocumentUpload = {
+  id: string; invoice_id: string; vendor_org_id: string; uploaded_by: string;
+  document_type: DocumentType; original_filename: string; mime_type: string; size_bytes: number;
+  storage_path: string; final_path: string; document_id: string | null; expires_at: string; created_at: string;
+};
+export type DocumentJob = {
+  id: string; document_id: string; status: "queued" | "processing" | "retry" | "completed" | "failed";
+  attempts: number; max_attempts: number; next_attempt_at: string; locked_until: string | null;
+  lease_token: string | null; last_error_code: string | null; created_at: string; updated_at: string;
+};
 export type Organization = Database["public"]["Tables"]["organizations"]["Row"];
 export type OrganizationMember =
   Database["public"]["Tables"]["organization_members"]["Row"];

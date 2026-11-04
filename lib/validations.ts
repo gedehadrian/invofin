@@ -77,6 +77,7 @@ export const riskDecisionSchema = z.object({
 });
 
 export const fundingCommitmentSchema = z.object({
+  requestId: z.string().uuid("Permintaan pendanaan tidak dikenali. Muat ulang halaman."),
   opportunityId: z.string().uuid(),
-  amount: z.coerce.number().positive("Nominal komitmen harus lebih dari 0."),
+  amount: z.coerce.number().positive("Nominal komitmen harus lebih dari 0.").max(1e12),
 });

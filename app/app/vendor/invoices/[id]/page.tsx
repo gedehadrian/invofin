@@ -7,6 +7,7 @@ import { formatIdr, formatDate } from "@/lib/format";
 import { ConfirmExtractionForm } from "./confirm-extraction-form";
 import { DocumentLinks } from "@/components/document-links";
 import type { RiskBand } from "@/lib/database.types";
+import { ExtractionProgress } from "@/components/extraction-progress";
 
 export default async function VendorInvoiceDetail({
   params,
@@ -32,6 +33,7 @@ export default async function VendorInvoiceDetail({
   const invoiceDoc = invoice.invoice_documents?.find((d) => d.document_type === "invoice");
   const extracted = (invoiceDoc?.extracted_data as { fields?: Record<string, unknown> } | null)
     ?.fields;
+  const processing = (invoice.invoice_documents ?? []).some(doc => ["pending", "processing"].includes(doc.extraction_status));
 
   return (
     <div className="space-y-8">
@@ -56,10 +58,10 @@ export default async function VendorInvoiceDetail({
             Provider: {invoiceDoc?.extraction_provider ?? "belum jalan"} · status{" "}
             {invoiceDoc?.extraction_status ?? "—"}
           </p>
-          <pre className="mt-3 overflow-auto rounded-lg bg-black/40 p-3 text-xs text-slate-300">
-            {JSON.stringify(extracted ?? { note: "Belum ada field terstruktur." }, null, 2)}
-          </pre>
-          {invoice.status === "extraction_review" ? (
+          <ExtractionProgress processing={processing} />
+          <dl className="mt-4 space-y-3 text-xs">{[["Nomor invoice", "invoiceNumber"], ["Vendor", "vendorName"], ["Buyer", "buyerName"], ["Nominal", "amount"], ["Terbit", "issueDate"], ["Jatuh tempo", "dueDate"]].map(([label, key]) => <div key={key} className="flex justify-between gap-4 border-b pb-2"><dt className="text-muted-foreground">{label}</dt><dd className="text-right font-medium">{extracted?.[key] == null ? "Perlu diperiksa" : key === "amount" ? formatIdr(Number(extracted[key])) : String(extracted[key])}</dd></div>)}</dl>
+          {!processing && <p className="mt-4 text-xs leading-relaxed text-muted-foreground">Periksa semua field terhadap dokumen asli. Field yang kosong atau kurang pasti perlu dilengkapi sebelum konfirmasi.</p>}
+          {invoice.status === "extraction_review" && !processing ? (
             <ConfirmExtractionForm invoice={invoice} />
           ) : null}
         </div>
@@ -68,7 +70,7 @@ export default async function VendorInvoiceDetail({
         <div className="surface p-4">
           <h2 className="font-medium">Konfirmasi buyer</h2>
           {invoice.buyer_confirmations ? (
-            <p className="mt-2 text-sm text-slate-300">
+            <p className="mt-2 text-sm text-muted-foreground">
               {invoice.buyer_confirmations.decision} ·{" "}
               {invoice.buyer_confirmations.confirmed_amount
                 ? formatIdr(Number(invoice.buyer_confirmations.confirmed_amount))

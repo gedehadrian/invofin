@@ -2,7 +2,10 @@
 
 import { startTransition, useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
-import { saveInvoiceDraft, submitInvoice, uploadInvoiceDocument, type ActionState } from "@/app/actions/invoices";
+import { saveInvoiceDraft, submitInvoice, type ActionState } from "@/app/actions/invoices";
+import { prepareDocumentUpload, finalizeDocumentUpload } from "@/app/actions/uploads";
+import { createClient } from "@/lib/supabase/client";
+import { validateUpload } from "@/lib/documents/hash";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +24,8 @@ export function InvoiceWizard({
 }) {
   const router = useRouter();
   const [currentId, setCurrentId] = useState(invoiceId);
+  const [uploading, setUploading] = useState(false);
+  const [uploadedTypes, setUploadedTypes] = useState<string[]>([]);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const [state, action, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await saveInvoiceDraft(prev, formData);
@@ -35,21 +40,23 @@ export function InvoiceWizard({
       setUploadMsg("Simpan data invoice terlebih dahulu.");
       return;
     }
-    const fd = new FormData();
-    fd.set("invoiceId", currentId);
-    fd.set("documentType", documentType);
-    fd.set("file", file);
-    setUploadMsg("Mengunggah dan memproses OCR...");
+    setUploading(true);
+    setUploadMsg("Memeriksa berkas...");
     try {
-      const result = await uploadInvoiceDocument(fd);
-      setUploadMsg(result.error ?? result.success ?? null);
-    } catch {
-      // Tanpa penangkapan ini, kegagalan unggahan (mis. batas ukuran body) hilang
-      // sebagai unhandled rejection dan pengguna tidak melihat pesan apa pun.
-      setUploadMsg(
-        "Unggahan gagal diproses server. Pastikan ukuran berkas di bawah 10 MB, lalu coba lagi.",
-      );
-    }
+      await validateUpload(file);
+      const reservation = await prepareDocumentUpload({ invoiceId: currentId, documentType, filename: file.name, mimeType: file.type, sizeBytes: file.size });
+      if (reservation.error || !reservation.path || !reservation.token || !reservation.uploadId) throw new Error(reservation.error ?? "Izin unggahan tidak tersedia.");
+      setUploadMsg("Mengunggah dokumen ke penyimpanan privat...");
+      const { error } = await createClient().storage.from("invoice-uploads").uploadToSignedUrl(reservation.path, reservation.token, file, { contentType: file.type });
+      if (error) throw new Error("Unggahan gagal. Periksa koneksi dan coba kembali.");
+      setUploadMsg("Memverifikasi isi dokumen...");
+      const result = await finalizeDocumentUpload(reservation.uploadId);
+      if (result.error) throw new Error(result.error);
+      setUploadedTypes(current => [...new Set([...current, documentType])]);
+      setUploadMsg(result.success ?? "Dokumen diterima.");
+    } catch (error) {
+      setUploadMsg(error instanceof Error ? error.message : "Unggahan gagal. Silakan coba kembali.");
+    } finally { setUploading(false); }
   }
 
   return (
@@ -132,7 +139,7 @@ export function InvoiceWizard({
           </p>
         ) : null}
         <p className="text-xs text-muted-foreground">
-          SHA-256 dihitung di server. File invoice identik ditolak unique constraint.
+          Dokumen masuk ke penyimpanan privat, diverifikasi, lalu diperiksa di latar belakang. Unggah ketiga dokumen sebelum mengajukan.
         </p>
         <p className="text-xs text-muted-foreground">
           Belum punya file? Unduh{" "}
@@ -156,11 +163,12 @@ export function InvoiceWizard({
         </p>
         {(["invoice", "purchase_order", "bast"] as const).map((type) => (
           <div key={type} className="space-y-1">
-            <Label>{type.replace("_", " ")}</Label>
+            <Label htmlFor={`upload-${type}`}>{type === "invoice" ? "Invoice" : type === "purchase_order" ? "Purchase Order" : "BAST"}{uploadedTypes.includes(type) ? " — diterima" : ""}</Label>
             <Input
+              id={`upload-${type}`}
               type="file"
               accept="application/pdf,image/jpeg,image/png,image/webp"
-              disabled={!currentId}
+              disabled={!currentId || uploading}
               onChange={(e) => {
                 const input = e.currentTarget;
                 const file = input.files?.[0];
@@ -173,11 +181,11 @@ export function InvoiceWizard({
             />
           </div>
         ))}
-        {uploadMsg ? <p className="text-sm text-amber-700">{uploadMsg}</p> : null}
+        {uploadMsg ? <p role="status" aria-live="polite" className="text-sm text-muted-foreground">{uploadMsg}</p> : null}
         <Button
           type="button"
           variant="secondary"
-          disabled={!currentId}
+          disabled={!currentId || uploading}
           onClick={async () => {
             if (!currentId) return;
             try {

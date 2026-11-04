@@ -4,10 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/auth/session";
-import { getExtractionProvider } from "@/lib/documents/azure";
-import { sanitizeFilename, sha256File, validateUpload } from "@/lib/documents/hash";
 import { extractionConfirmSchema, invoiceDraftSchema } from "@/lib/validations";
-import type { DocumentType, Json } from "@/lib/database.types";
 
 export type ActionState = { error?: string; success?: string; invoiceId?: string };
 
@@ -92,129 +89,6 @@ export async function saveInvoiceDraft(
   return { success: "Draf dibuat.", invoiceId: data.id };
 }
 
-export async function uploadInvoiceDocument(formData: FormData): Promise<ActionState> {
-  const ctx = await requireRole(["vendor"]);
-  const invoiceId = String(formData.get("invoiceId") ?? "");
-  const documentType = String(formData.get("documentType") ?? "") as DocumentType;
-  const file = formData.get("file");
-  if (!invoiceId || !["invoice", "purchase_order", "bast"].includes(documentType)) {
-    return { error: "Data unggahan tidak lengkap." };
-  }
-  if (!(file instanceof File) || file.size === 0) {
-    return { error: "Pilih berkas terlebih dahulu." };
-  }
-
-  try {
-    await validateUpload(file);
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : "Berkas tidak valid." };
-  }
-
-  const supabase = await createClient();
-  const { data: invoice } = await supabase
-    .from("invoices")
-    .select("id, vendor_org_id, status")
-    .eq("id", invoiceId)
-    .eq("vendor_org_id", ctx.current.organization_id)
-    .maybeSingle();
-  if (!invoice || !["draft", "extraction_review"].includes(invoice.status)) {
-    return { error: "Invoice tidak dapat menerima unggahan." };
-  }
-
-  const { hash, bytes } = await sha256File(file);
-  const admin = createAdminClient();
-  const { data: dupes } = await admin.rpc("duplicate_document_check", {
-    p_sha256: hash,
-  });
-  const clash = (dupes ?? []).find((d) => d.invoice_id !== invoiceId);
-  if (documentType === "invoice" && clash) {
-    return {
-      error: "Dokumen invoice sudah pernah diajukan. Hubungi tim verifikasi jika memerlukan bantuan.",
-    };
-  }
-
-  const documentId = crypto.randomUUID();
-  const filename = sanitizeFilename(file.name);
-  const storagePath = `${invoice.vendor_org_id}/${invoiceId}/${documentId}-${filename}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("invoice-documents")
-    .upload(storagePath, bytes, { contentType: file.type, upsert: false });
-  if (uploadError) return { error: uploadError.message };
-
-  await supabase
-    .from("invoice_documents")
-    .delete()
-    .eq("invoice_id", invoiceId)
-    .eq("document_type", documentType);
-
-  const { error: insertError } = await supabase.from("invoice_documents").insert({
-    id: documentId,
-    invoice_id: invoiceId,
-    document_type: documentType,
-    storage_path: storagePath,
-    original_filename: file.name,
-    mime_type: file.type,
-    size_bytes: file.size,
-    sha256: hash,
-    extraction_status: documentType === "invoice" ? "processing" : "pending",
-    uploaded_by: ctx.userId,
-  });
-  if (insertError) {
-    await supabase.storage.from("invoice-documents").remove([storagePath]);
-    return { error: friendlyDbError(insertError.message) };
-  }
-
-  if (documentType === "invoice") {
-    const provider = getExtractionProvider();
-    let result;
-    try {
-      result = await provider.extractInvoice({
-        bytes,
-        mimeType: file.type,
-        filename: file.name,
-      });
-    } catch (error) {
-      result = {
-        provider: provider.name,
-        status: "failed" as const,
-        fields: {},
-        raw: {
-          reason: error instanceof Error ? error.message : "OCR gagal.",
-        },
-        processedAt: new Date().toISOString(),
-      };
-    }
-    await admin
-      .from("invoice_documents")
-      .update({
-        extraction_status: result.status,
-        extraction_provider: result.provider,
-        extracted_data: {
-          fields: result.fields,
-          raw: result.raw as Json,
-          processedAt: result.processedAt,
-          duplicateWarning: clash
-            ? { invoice_id: clash.invoice_id, document_id: clash.document_id }
-            : null,
-        },
-      })
-      .eq("id", documentId);
-  } else if (clash) {
-    await admin
-      .from("invoice_documents")
-      .update({
-        extracted_data: {
-          duplicateWarning: { invoice_id: clash.invoice_id, document_id: clash.document_id },
-        },
-      })
-      .eq("id", documentId);
-  }
-
-  revalidatePath(`/app/vendor/invoices/${invoiceId}`);
-  return { success: "Berkas diunggah.", invoiceId };
-}
-
 export async function submitInvoice(invoiceId: string): Promise<ActionState> {
   const ctx = await requireRole(["vendor"]);
   const supabase = await createClient();
@@ -233,13 +107,8 @@ export async function submitInvoice(invoiceId: string): Promise<ActionState> {
   const hasInvoice = docs.some((d) => d.document_type === "invoice");
   if (!hasInvoice) return { error: "Unggah berkas invoice terlebih dahulu." };
 
-  const needsReview = docs.some(
-    (d) =>
-      d.document_type === "invoice" &&
-      ["pending", "processing", "needs_review", "failed"].includes(d.extraction_status),
-  );
-
-  const nextStatus = needsReview ? "extraction_review" : "buyer_review";
+  if (!["invoice", "purchase_order", "bast"].every(type => docs.some(doc => doc.document_type === type))) return { error: "Unggah invoice, Purchase Order, dan BAST sebelum mengajukan." };
+  const nextStatus = "extraction_review";
   const { error } = await supabase
     .from("invoices")
     .update({
@@ -251,9 +120,7 @@ export async function submitInvoice(invoiceId: string): Promise<ActionState> {
 
   revalidatePath("/app/vendor/invoices");
   return {
-    success: needsReview
-      ? "Invoice diajukan. Konfirmasi hasil ekstraksi sebelum buyer meninjau."
-      : "Invoice diajukan ke buyer.",
+    success: "Invoice diajukan. Tunggu pemeriksaan dokumen, lalu konfirmasi hasil ekstraksi sebelum buyer meninjau.",
     invoiceId,
   };
 }
@@ -276,23 +143,14 @@ export async function confirmExtraction(
 
   const invoiceId = parsed.data.invoiceId;
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("invoices")
-    .update({
-      invoice_number: parsed.data.invoiceNumber,
-      issue_date: parsed.data.issueDate,
-      due_date: parsed.data.dueDate,
-      amount: parsed.data.amount,
-      status: "buyer_review",
-    })
-    .eq("id", invoiceId)
-    .eq("vendor_org_id", ctx.current.organization_id)
-    .eq("status", "extraction_review")
-    .select("id");
-  if (error) return { error: friendlyDbError(error.message) };
-  if (!data?.length) {
-    return { error: "Invoice tidak berada dalam tahap konfirmasi ekstraksi." };
-  }
+  if (formData.get("confirmAccuracy") !== "on") return { error: "Konfirmasi bahwa data sesuai dokumen asli." };
+  const { data: documents, error: documentError } = await supabase.from("invoice_documents").select("document_type,extraction_status").eq("invoice_id", invoiceId);
+  if (documentError || !documents?.length || documents.some(doc => ["pending", "processing"].includes(doc.extraction_status))) return { error: "Pemeriksaan dokumen masih berjalan. Coba kembali setelah selesai." };
+  if (!["invoice", "purchase_order", "bast"].every(type => documents.some(doc => doc.document_type === type))) return { error: "Dokumen wajib belum lengkap." };
+
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("confirm_invoice_extraction", { p_invoice_id: invoiceId, p_actor: ctx.userId, p_vendor: ctx.current.organization_id, p_number: parsed.data.invoiceNumber, p_issue: parsed.data.issueDate, p_due: parsed.data.dueDate, p_amount: parsed.data.amount });
+  if (error) return { error: "Konfirmasi belum dapat disimpan. Periksa kelengkapan dokumen dan tahap invoice." };
   revalidatePath(`/app/vendor/invoices/${invoiceId}`);
   revalidatePath("/app/vendor/invoices");
   return { success: "Data dikonfirmasi. Invoice masuk antrean buyer.", invoiceId };

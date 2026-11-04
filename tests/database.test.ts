@@ -18,12 +18,13 @@ test("PostgreSQL migrations and cross-organization authorization", async t => {
       create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,owner uuid,metadata jsonb,unique(bucket_id,name));
       alter table storage.objects enable row level security;
       grant usage on schema auth,storage,public to anon,authenticated,service_role;
+      grant select,insert,update,delete on all tables in schema storage to authenticated,service_role;
+      alter default privileges in schema public grant select,insert,update,delete on tables to authenticated,service_role;
       grant execute on all functions in schema auth to anon,authenticated,service_role;`);
     for (const file of (await readdir("supabase/migrations")).filter(name => name.endsWith(".sql")).sort()) {
       const sql = (await readFile(`supabase/migrations/${file}`, "utf8")).replace('create extension if not exists "pgcrypto";', "-- gen_random_uuid is built into PostgreSQL");
       await db.exec(sql);
     }
-    await db.exec(`grant select,insert,update,delete on all tables in schema public,storage to authenticated,service_role;`);
     for (let n=1;n<=7;n++) await db.query("insert into auth.users(id,email) values($1,$2)", [uid(n), `test${n}@invofin.invalid`]);
     const orgs = [[11,"vendor"],[12,"vendor"],[13,"buyer"],[14,"lender"],[15,"platform"],[16,"vendor"]] as const;
     for (const [id,type] of orgs) await db.query("insert into organizations(id,name,type,status) values($1,$2,$3,$4)",[uid(id),`Org ${id}`,type,id===16?"suspended":"active"]);
@@ -61,9 +62,59 @@ test("PostgreSQL migrations and cross-organization authorization", async t => {
       assert.equal((await asUser(6,()=>db.query<{allowed:boolean}>("select is_admin() as allowed"))).rows[0].allowed,true);
       assert.equal((await asUser(5,()=>db.query("select id from audit_logs"))).rows.length,0);
     });
-    await t.test("vendor can submit a documented draft and a foreign buyer cannot fabricate confirmation", async () => {
-      await asUser(1,()=>db.query("update invoices set status='buyer_review' where id=$1",[uid(21)]));
+    await t.test("vendor cannot skip confirmation workflow and a foreign buyer cannot fabricate confirmation", async () => {
+      await asUser(1,()=>db.query("update invoices set status='extraction_review' where id=$1",[uid(21)]));
+      await assert.rejects(asUser(1,()=>db.query("update invoices set status='buyer_review' where id=$1",[uid(21)])));
       await assert.rejects(asUser(3,()=>db.query("insert into buyer_confirmations(invoice_id,buyer_org_id,decision,confirmed_amount,confirmed_due_date,decided_by) values($1,$2,'confirmed',1000000,'2026-12-01',$3)",[uid(21),uid(12),uid(3)])));
+    });
+    await t.test("human confirmation, buyer assessment, risk approval and funding are transactional", async () => {
+      for (const [id,type] of [[32,"purchase_order"],[33,"bast"]]) await db.query("insert into invoice_documents(id,invoice_id,document_type,storage_path,original_filename,mime_type,size_bytes,sha256,uploaded_by,extraction_status) values($1,$2,$3,$4,'support.pdf','application/pdf',100,$5,$6,'needs_review')",[uid(Number(id)),uid(21),type,`verified/${id}.pdf`,String(id).repeat(32),uid(1)]);
+      await db.query("update invoice_documents set extraction_status='needs_review' where invoice_id=$1",[uid(21)]);
+      await db.query("update invoices set status='extraction_review' where id=$1",[uid(21)]);
+      const confirmation=[uid(21),uid(1),uid(11),"INV-A","2026-10-01","2099-12-01",1000000];
+      await db.query("select confirm_invoice_extraction($1,$2,$3,$4,$5,$6,$7)",confirmation);
+      const assessment=JSON.stringify({score:90,riskBand:"A",reasonCodes:[],anomalyFlags:[],assessmentMethod:"test_fixture"});
+      const decision=[uid(21),uid(3),uid(13),"confirmed",1000000,"2099-12-01","Sesuai dokumen",assessment];
+      await db.query("select decide_buyer_invoice($1,$2,$3,$4,$5,$6,$7,$8)",decision);
+      await db.query("select decide_buyer_invoice($1,$2,$3,$4,$5,$6,$7,$8)",decision);
+      assert.equal((await db.query("select id from risk_assessments")).rows.length,1);
+      await assert.rejects(db.query("select decide_risk_invoice($1,$2,'approved','Sudah diperiksa',800000,1.2,0.8)",[uid(21),uid(3)]));
+      await db.query("select decide_risk_invoice($1,$2,'approved','Sudah diperiksa',800000,1.2,0.8)",[uid(21),uid(5)]);
+      await db.query("select decide_risk_invoice($1,$2,'approved','Sudah diperiksa',800000,1.2,0.8)",[uid(21),uid(5)]);
+      assert.equal((await db.query("select id from funding_opportunities")).rows.length,1);
+      const opportunity=(await db.query<{id:string}>("select id from funding_opportunities")).rows[0].id;
+      await asUser(4,()=>db.query("select commit_funding_once($1,300000,$2)",[opportunity,uid(51)]));
+      await asUser(4,()=>db.query("select commit_funding_once($1,300000,$2)",[opportunity,uid(51)]));
+      assert.equal((await db.query<{committed_amount:string}>("select committed_amount from funding_opportunities")).rows[0].committed_amount,"300000.00");
+      await assert.rejects(asUser(4,()=>db.query("select commit_funding_once($1,300001,$2)",[opportunity,uid(51)])));
+      await assert.rejects(asUser(4,()=>db.query("select commit_funding_once($1,600000,$2)",[opportunity,uid(52)])));
+      assert.equal((await db.query("select * from funding_commitments")).rows.length,1);
+      await asUser(4,()=>db.query("select commit_funding_once($1,500000,$2)",[opportunity,uid(53)]));
+      assert.equal((await db.query<{status:string}>("select status from invoices")).rows[0].status,"funded");
+    });
+    await t.test("verified document evidence and worker RPCs cannot be written by clients", async () => {
+      await assert.rejects(asUser(1,()=>db.query("update invoice_documents set sha256=$1 where id=$2",["b".repeat(64),uid(31)])));
+      await assert.rejects(asUser(1,()=>db.query("select * from claim_document_job()")));
+      await assert.rejects(asUser(4,()=>db.query("select * from document_jobs")));
+    });
+    await t.test("upload completion and job result are atomic, idempotent and lease-protected", async () => {
+      await db.query("update invoices set status='draft' where id=$1",[uid(21)]);
+      await db.query("insert into document_uploads(id,invoice_id,vendor_org_id,uploaded_by,document_type,original_filename,mime_type,size_bytes,storage_path,final_path) values($1,$2,$3,$4,'invoice','new.pdf','application/pdf',100,'q/new','verified/new.pdf')",[uid(41),uid(21),uid(11),uid(1)]);
+      const params=[uid(41),"b".repeat(64),100,"application/pdf"];
+      await db.query("select * from complete_document_upload($1,$2,$3,$4)",params);
+      await db.query("select * from complete_document_upload($1,$2,$3,$4)",params);
+      assert.equal((await db.query("select * from document_jobs")).rows.length,1);
+      const job=(await db.query<{id:string;lease_token:string}>("select * from claim_document_job()")).rows[0];
+      assert.equal((await db.query("select * from claim_document_job()")).rows.length,0);
+      const stale=await db.query<{ok:boolean}>("select finish_document_job($1,$2,'completed','fixture','{}') as ok",[job.id,uid(99)]);
+      assert.equal(stale.rows[0].ok,false);
+      await db.query("select finish_document_job($1,$2,'failed','fixture','{}')",[job.id,job.lease_token]);
+      assert.equal((await db.query<{status:string}>("select status from document_jobs")).rows[0].status,"retry");
+      await db.exec("update document_jobs set next_attempt_at=now()-interval '1 second'");
+      const retry=(await db.query<{id:string;lease_token:string}>("select * from claim_document_job()")).rows[0];
+      await db.query("select finish_document_job($1,$2,'needs_review','fixture',$3)",[retry.id,retry.lease_token,JSON.stringify({fields:{amount:1000000}})]);
+      assert.equal((await db.query<{status:string}>("select status from document_jobs")).rows[0].status,"completed");
+      assert.equal((await db.query<{extraction_status:string}>("select extraction_status from invoice_documents where id=$1",[uid(41)])).rows[0].extraction_status,"needs_review");
     });
   } finally { await db.close(); }
 });

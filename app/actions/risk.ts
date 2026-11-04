@@ -50,60 +50,17 @@ export async function decideRisk(
     };
   }
 
-  const { error: reviewError } = await admin
-    .from("risk_assessments")
-    .update({
-      decision: parsed.data.decision,
-      decision_note: parsed.data.note,
-      reviewed_by: ctx.userId,
-      reviewed_at: new Date().toISOString(),
-    })
-    .eq("id", latest.id);
-  if (reviewError) return { error: reviewError.message };
-
-  if (parsed.data.decision === "rejected") {
-    const { error: rejectError } = await admin
-      .from("invoices")
-      .update({ status: "rejected" })
-      .eq("id", invoice.id);
-    if (rejectError) return { error: rejectError.message };
-    revalidatePath("/app/risk/queue");
-    revalidatePath(`/app/risk/invoices/${invoice.id}`);
-    return { success: "Invoice ditolak oleh Risk Officer." };
-  }
-
   const confirmation = invoice.buyer_confirmations;
   const amount = Number(confirmation?.confirmed_amount ?? invoice.amount);
   const due = confirmation?.confirmed_due_date ?? invoice.due_date;
   const tenor = tenorDays(invoice.issue_date, due);
   const fees = pricingFor({ tenorDays: tenor, riskBand: latest.risk_band });
   const target = targetAdvance(amount, invoice.requested_advance_percent);
-  const now = new Date();
-  const closes = new Date(now.getTime() + 14 * 86_400_000);
-
-  const { error: oppError } = await admin.from("funding_opportunities").insert({
-    invoice_id: invoice.id,
-    target_amount: target,
-    vendor_fee_percent: fees.vendorFeePercent,
-    lender_return_percent: fees.lenderReturnPercent,
-    opens_at: now.toISOString(),
-    closes_at: closes.toISOString(),
-    status: "open",
-  });
-  // Peluang bersifat satu-per-invoice: percobaan ulang setelah kegagalan parsial
-  // harus lanjut ke pembaruan status, bukan berhenti dengan error mentah.
-  if (oppError && !oppError.message.includes("funding_opportunities_invoice_id_key")) {
-    return { error: oppError.message };
-  }
-
-  const { error: statusError } = await admin
-    .from("invoices")
-    .update({ status: "eligible_for_funding" })
-    .eq("id", invoice.id);
-  if (statusError) return { error: statusError.message };
+  const { error: decisionError } = await admin.rpc("decide_risk_invoice", { p_invoice: invoice.id, p_actor: ctx.userId, p_decision: parsed.data.decision, p_note: parsed.data.note, p_target: target, p_vendor_fee: fees.vendorFeePercent, p_lender_return: fees.lenderReturnPercent });
+  if (decisionError) return { error: "Keputusan belum tersimpan: periksa tahap invoice, jatuh tempo, dan pemisahan pembuat/pemeriksa." };
 
   revalidatePath("/app/risk/queue");
   revalidatePath(`/app/risk/invoices/${invoice.id}`);
   revalidatePath("/app/lender/marketplace");
-  return { success: "Invoice disetujui dan masuk marketplace." };
+  return { success: parsed.data.decision === "approved" ? "Invoice disetujui dan masuk marketplace." : "Invoice ditolak oleh Risk Officer." };
 }

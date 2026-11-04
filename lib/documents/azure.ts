@@ -108,6 +108,7 @@ export class AzureDocumentIntelligenceProvider implements DocumentExtractionProv
       };
     }
 
+    const deadline = AbortSignal.timeout(35_000);
     try {
       const analyzeUrl = `${endpoint}/documentintelligence/documentModels/prebuilt-invoice:analyze?api-version=2024-11-30`;
       const start = await fetch(analyzeUrl, {
@@ -117,7 +118,7 @@ export class AzureDocumentIntelligenceProvider implements DocumentExtractionProv
           "Content-Type": input.mimeType,
         },
         body: input.bytes,
-        signal: AbortSignal.timeout(20_000),
+        signal: AbortSignal.any([deadline, AbortSignal.timeout(20_000)]),
       });
 
       if (!start.ok) {
@@ -135,7 +136,7 @@ export class AzureDocumentIntelligenceProvider implements DocumentExtractionProv
         });
       }
 
-      const result = await this.poll(operationLocation, key);
+      const result = await this.poll(operationLocation, key, deadline);
       if (result.status === "failed") {
         return failedResult(this.name, {
           status: result.status,
@@ -166,11 +167,11 @@ export class AzureDocumentIntelligenceProvider implements DocumentExtractionProv
     }
   }
 
-  private async poll(url: string, key: string): Promise<AzureAnalyzeOperation> {
+  private async poll(url: string, key: string, deadline: AbortSignal): Promise<AzureAnalyzeOperation> {
     for (let i = 0; i < 20; i++) {
       const res = await fetch(url, {
         headers: { "Ocp-Apim-Subscription-Key": key },
-        signal: AbortSignal.timeout(10_000),
+        signal: AbortSignal.any([deadline, AbortSignal.timeout(10_000)]),
       });
       if (!res.ok) {
         const body = await res.text();
@@ -207,6 +208,7 @@ export class ManualExtractionProvider implements DocumentExtractionProvider {
 }
 
 export function getExtractionProvider(): DocumentExtractionProvider {
+  if (process.env.INVOFIN_OCR_MODE === "manual") return new ManualExtractionProvider();
   const azure = new AzureDocumentIntelligenceProvider();
   return azure.isConfigured() ? azure : new ManualExtractionProvider();
 }

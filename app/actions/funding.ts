@@ -17,6 +17,7 @@ export async function commitFunding(
   }
 
   const parsed = fundingCommitmentSchema.safeParse({
+    requestId: formData.get("requestId"),
     opportunityId: formData.get("opportunityId"),
     amount: formData.get("amount"),
   });
@@ -25,9 +26,10 @@ export async function commitFunding(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("create_funding_commitment", {
-    p_opportunity_id: parsed.data.opportunityId,
+  const { error } = await supabase.rpc("commit_funding_once", {
+    p_opportunity: parsed.data.opportunityId,
     p_amount: parsed.data.amount,
+    p_request: parsed.data.requestId,
   });
   if (error) return { error: error.message };
 

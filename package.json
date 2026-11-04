@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test lib/risk/*.test.ts lib/auth/*.test.ts lib/documents/*.test.ts lib/*.test.ts modules/dashboard/*.test.ts",
     "test:db": "tsx --test tests/database.test.ts",
+    "test:local": "node --env-file=.env.test.local node_modules/tsx/dist/cli.mjs --test tests/local-stack.test.ts",
+    "worker": "node --env-file=.env.local scripts/run-document-worker.mjs",
     "seed": "tsx --env-file=.env.local scripts/seed.ts"
   },
   "dependencies": {
