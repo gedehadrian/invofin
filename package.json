@@ -15,6 +15,7 @@
     "test:operations:local": "node --env-file=.env.test.local node_modules/tsx/dist/cli.mjs --test tests/operations-local.test.ts",
     "test:restore:local": "node --env-file=.env.test.local scripts/verify-local-restore.mjs",
     "check:deployment": "tsx --env-file=.env.local scripts/preflight.ts",
+    "verify:staging": "node --env-file=.env.local --env-file=.env.prototype.local node_modules/tsx/dist/cli.mjs scripts/verify-staging.ts",
     "storage:retention": "tsx --env-file=.env.local scripts/storage-retention.ts",
     "setup:local": "node scripts/setup-local.mjs",
     "dev:local": "node scripts/run-local.mjs",

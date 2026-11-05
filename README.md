@@ -53,3 +53,5 @@ Target Supabase InvoFin: `skwwgjjgeativyevkkpl`. Target Vercel: project `invofin
 Setelah migrasi diterapkan, `node scripts/configure-cloud-worker.mjs --apply` mengonfigurasi environment Production dan Vault melalui stdin/API tanpa mencetak secret. Deploy ulang aplikasi setelah konfigurasi. `node scripts/seed-prototype.mjs --apply` membuat lima identitas sintetis khusus pada target InvoFin dan menyimpan kredensial di `.env.prototype.local`, tanpa menimpa organisasi atau invoice lain.
 
 File migrasi awal memakai timestamp yang sama dengan riwayat cloud yang telah diperiksa. Jangan mengubah riwayat remote menjadi reverted atau menjalankan ulang baseline.
+
+Operator yang memiliki `.env.local` dan kredensial sintetis `.env.prototype.local` dapat menjalankan `npm run verify:staging` untuk memeriksa lima peran/halaman online, isolasi dokumen lender dan proteksi worker. Script ini tidak mengubah invoice, mengirim email atau menggunakan kuota OCR. Jangan membagikan file kredensial ke GitHub. Repository privat dapat dibagikan melalui Settings → Collaborators; tiap anggota sebaiknya memakai aksesnya sendiri.
