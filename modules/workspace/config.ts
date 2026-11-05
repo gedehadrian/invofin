@@ -16,8 +16,8 @@ export function navigation(role: MemberRole) {
     case "vendor": return [first, { href: `${root}/invoices`, label: "Invoice saya", icon: FileText }, { href: `${root}/invoices/new`, label: "Pengajuan baru", icon: Wallet }];
     case "buyer": return [first, { href: `${root}/approvals`, label: "Konfirmasi invoice", icon: FileCheck2 }];
     case "lender": return [first, { href: `${root}/marketplace`, label: "Marketplace", icon: Store }, { href: `${root}/portfolio`, label: "Portofolio", icon: Wallet }];
-    case "risk_officer": return [first, { href: `${root}/queue`, label: "Antrean tinjauan", icon: ShieldCheck },...(process.env.NEXT_PUBLIC_APP_ENV!=="production"?[{href:`${root}/lab`,label:"Lab model sintetis",icon:ScrollText}]:[])];
-    case "admin": return [first, { href: `${root}/organizations`, label: "Organisasi", icon: Building2 }, { href: `${root}/users`, label: "Pengguna", icon: Users }, { href: `${root}/audit`, label: "Jejak audit", icon: ScrollText }, { href: "/app/risk/queue", label: "Antrean risiko", icon: ShieldCheck }];
+    case "risk_officer": return [first, { href: `${root}/queue`, label: "Antrean tinjauan", icon: ShieldCheck },{href:"/app/admin/jobs",label:"Operasional dokumen",icon:FileText},...(process.env.NEXT_PUBLIC_APP_ENV!=="production"?[{href:`${root}/lab`,label:"Lab model sintetis",icon:ScrollText}]:[])];
+    case "admin": return [first, {href:`${root}/jobs`,label:"Operasional dokumen",icon:FileText}, { href: `${root}/organizations`, label: "Organisasi", icon: Building2 }, { href: `${root}/users`, label: "Pengguna", icon: Users }, { href: `${root}/audit`, label: "Jejak audit", icon: ScrollText }, { href: "/app/risk/queue", label: "Antrean risiko", icon: ShieldCheck }];
   }
 }
 

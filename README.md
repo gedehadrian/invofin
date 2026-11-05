@@ -8,13 +8,15 @@ Prototipe invoice financing dengan lima peran: vendor, buyer, lender, Risk Offic
 - [Panduan prototipe online dan pekerjaan berikutnya](docs/PROTOTYPE.md)
 - [Kesepakatan enam putaran, augmentasi dan retraining](docs/SIX_ROUNDS.md)
 - [Mereproduksi dataset augmentasi berlabel](evaluation/DATASET.md)
+- [Model eksperimen dan retraining](docs/MODELS.md) · [UAT lima peran](docs/UAT.md)
+- [Operasional, backup dan promotion](docs/OPERATIONS.md) · [Daftar fitur dan batasnya](docs/FEATURE_MATRIX.md)
 - [Arsitektur](docs/ARCHITECTURE.md) · [Design system](docs/DESIGN_SYSTEM.md) · [Verifikasi](docs/VERIFICATION.md)
 
 Arsitektur berupa modular monolith dengan antrean dokumen durable. Worker dapat dipisahkan saat beban membutuhkan layanan sendiri. Komitmen pendanaan adalah simulasi pencatatan; belum ada pencairan atau pembayaran nyata.
 
 ## Menjalankan lokal
 
-Prasyarat: Node.js, npm dan Docker Desktop aktif. Konfigurasi cloud di `.env.local` tetap terpisah dari pengujian lokal.
+Prasyarat: Node.js 22+, npm dan Docker Desktop aktif. Konfigurasi cloud di `.env.local` tetap terpisah dari pengujian lokal. Next.js dipakai pada versi 16.4.5; GitHub Actions menjalankan lint, tes, build dan audit dependency tanpa secret cloud.
 
 ```sh
 npm ci
@@ -29,6 +31,9 @@ Pada terminal kedua: `npm run worker:local`. URL lokal `http://127.0.0.1:3100`. 
 npm test
 npm run test:db
 npm run test:local
+npm run test:auth:local
+npm run test:operations:local
+npm run test:restore:local
 npm run typecheck
 npm run build
 ```
@@ -37,9 +42,9 @@ npm run build
 
 ## OCR dan risiko
 
-Azure `prebuilt-invoice` mengekstrak invoice/PO dengan normalisasi nominal, tanggal dan confidence per field. BAST masuk pemeriksaan manual. Hasil yang kosong atau tidak pasti wajib ditinjau manusia. Unggahan tidak menunggu OCR: pekerjaan disimpan di database dengan lease dan retry terbatas.
+Azure `prebuilt-invoice` mengekstrak invoice/PO; `prebuilt-layout` mengekstrak BAST. Normalisasi nominal/tanggal, pencocokan referensi/item dan confidence konservatif mengarahkan hasil kosong/tidak pasti ke pemeriksaan manusia. Unggahan tidak menunggu OCR: job memakai lease/retry dan dapat diperiksa operator di `/app/admin/jobs`.
 
-Rules engine memeriksa konsistensi dokumen dan duplikasi; Isolation Forest baru digunakan jika histori vendor cukup. Keduanya memberi sinyal pemeriksaan, belum merupakan model fraud atau credit scoring yang tervalidasi. Lihat [evaluasi OCR](evaluation/README.md). `npm run eval:ocr -- --live --manifest evaluation/ocr.synthetic.json` mengirim satu dokumen sintetis ke Azure dan dapat memakai kuota provider.
+Rules engine memeriksa konsistensi, hash file dan identitas bisnis invoice; Isolation Forest digunakan jika histori vendor cukup. Lab risiko non-production menampilkan baseline kredit sintetis berversi, terpisah dari keputusan pendanaan. Belum ada model fraud/kredit yang tervalidasi pada nasabah nyata. Lihat [evaluasi OCR](evaluation/README.md) dan [model](docs/MODELS.md). `npm run eval:ocr -- --live --manifest evaluation/ocr.synthetic.json` mengirim dokumen sintetis ke Azure dan dapat memakai kuota provider. Hugging Face belum dipasang; Azure tetap baseline OCR.
 
 ## Deployment yang sudah ada
 

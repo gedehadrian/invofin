@@ -28,7 +28,8 @@ export interface PaymentProvider {
 
 export class DeferredPaymentProvider implements PaymentProvider {
   readonly name = "deferred-legal-review";
-  async disburse() {
+  async disburse(input: {opportunityId:string;amount:number}) {
+    void input;
     return {
       ok: false,
       message:

@@ -142,5 +142,21 @@ test("PostgreSQL migrations and cross-organization authorization", async t => {
       assert.equal((await db.query<{status:string}>("select status from document_jobs")).rows[0].status,"completed");
       assert.equal((await db.query<{extraction_status:string}>("select extraction_status from invoice_documents where id=$1",[uid(41)])).rows[0].extraction_status,"needs_review");
     });
+    await t.test("operator retry is staff-only, idempotent, audited and notifies on failure once",async()=>{
+      const job=(await db.query<{id:string}>("select id from document_jobs limit 1")).rows[0];
+      await assert.rejects(asUser(6,()=>db.query("select retry_document_job($1,$2)",[job.id,uid(6)])));
+      await assert.rejects(db.query("select retry_document_job($1,$2)",[job.id,uid(1)]));
+      const notices=(await db.query<{n:number}>("select count(*)::int as n from notifications")).rows[0].n;
+      await db.query("update document_jobs set status='failed' where id=$1",[job.id]);
+      const failedNotices=(await db.query<{n:number}>("select count(*)::int as n from notifications")).rows[0].n;
+      assert.equal(failedNotices-notices,2);
+      await db.query("update document_jobs set status='failed' where id=$1",[job.id]);
+      assert.equal((await db.query<{n:number}>("select count(*)::int as n from notifications")).rows[0].n,failedNotices);
+      assert.equal((await db.query<{ok:boolean}>("select retry_document_job($1,$2) as ok",[job.id,uid(5)])).rows[0].ok,true);
+      assert.equal((await db.query<{ok:boolean}>("select retry_document_job($1,$2) as ok",[job.id,uid(6)])).rows[0].ok,false);
+      assert.equal((await db.query("select id from audit_logs where action='document_job_retried'")).rows.length,1);
+      assert.equal((await db.query<{extraction_status:string}>("select extraction_status from invoice_documents where id=$1",[uid(41)])).rows[0].extraction_status,"pending");
+      await assert.rejects(asUser(1,()=>db.query("select reserve_document_upload($1,'{}')",[uid(1)])));
+    });
   } finally { await db.close(); }
 });

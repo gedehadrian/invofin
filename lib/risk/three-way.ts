@@ -1,7 +1,7 @@
 import type { ExtractedFields } from "./rules-engine";
 const reference=(value:string)=>value.normalize("NFKC").replace(/\s+/g,"").toUpperCase();
 function itemSignature(items:ExtractedFields["items"]) {
-  if(!items?.length||items.some(x=>!x.description.trim()||x.quantity==null||!Number.isFinite(x.quantity)||x.quantity<=0||(x.confidence??0)<.85)) return null;
+  if(!items?.length||items.some(x=>!x.description.trim()||x.quantity==null||!Number.isFinite(x.quantity)||x.quantity<=0||!Number.isFinite(x.confidence)||(x.confidence??0)<.85)) return null;
   const grouped=new Map<string,{quantity:number;amount:number}>();
   for(const item of items) {
     const amount=item.amount??(item.unitPrice==null?null:item.unitPrice*item.quantity!);

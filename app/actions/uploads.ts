@@ -17,13 +17,11 @@ export async function prepareDocumentUpload(input: unknown) {
   const { data: invoice, error } = await db.from("invoices").select("id,vendor_org_id,status").eq("id", parsed.data.invoiceId).eq("vendor_org_id", ctx.current.organization_id).maybeSingle();
   if (error || !invoice || !canModifyInvoice(invoice.status)) return { error: "Invoice tidak dapat menerima dokumen." };
   const admin = createAdminClient();
-  const { count, error: countError } = await admin.from("document_uploads").select("id", { count: "exact", head: true }).eq("uploaded_by", ctx.userId).gte("created_at", new Date(Date.now() - 3600000).toISOString());
-  if (countError || (count ?? 0) >= 30) return { error: "Unggahan sementara tidak tersedia atau batas unggahan tercapai. Coba lagi nanti." };
   const id = crypto.randomUUID();
   const filename = sanitizeFilename(parsed.data.filename);
   const paths = uploadPaths(invoice.vendor_org_id, invoice.id, id, filename);
-  const { error: reservationError } = await admin.from("document_uploads").insert({ id, invoice_id: invoice.id, vendor_org_id: invoice.vendor_org_id, uploaded_by: ctx.userId, document_type: parsed.data.documentType, original_filename: filename, mime_type: parsed.data.mimeType, size_bytes: parsed.data.sizeBytes, storage_path: paths.quarantine, final_path: paths.verified });
-  if (reservationError) return { error: "Reservasi unggahan gagal. Periksa migrasi database." };
+  const { error: reservationError } = await admin.rpc("reserve_document_upload",{p_actor:ctx.userId,p_upload:{id,invoice_id:invoice.id,vendor_org_id:invoice.vendor_org_id,document_type:parsed.data.documentType,original_filename:filename,mime_type:parsed.data.mimeType,size_bytes:parsed.data.sizeBytes,storage_path:paths.quarantine,final_path:paths.verified}});
+  if (reservationError) return { error: "Reservasi unggahan belum tersedia atau batas 30 unggahan per jam tercapai. Coba lagi nanti." };
   const { data: signed, error: signedError } = await admin.storage.from("invoice-uploads").createSignedUploadUrl(paths.quarantine, { upsert: false });
   if (signedError || !signed) return { error: "Izin unggahan belum tersedia. Silakan coba lagi." };
   return { uploadId: id, path: paths.quarantine, token: signed.token };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState } from "react";
 import { commitFunding, type ActionState } from "@/app/actions/funding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +11,12 @@ const initial: ActionState = {};
 export function CommitForm({
   opportunityId,
   remaining,
+  requestId,
 }: {
   opportunityId: string;
   remaining: number;
+  requestId: string;
 }) {
-  const [requestId, setRequestId] = useState("");
-  useEffect(() => { setRequestId(crypto.randomUUID()); }, []);
   const [state, action, pending] = useActionState(commitFunding, initial);
   return (
     <form action={action} className="space-y-3">

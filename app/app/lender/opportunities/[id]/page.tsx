@@ -67,7 +67,7 @@ export default async function OpportunityDetail({
         </ul>
       </div>
       {opp.status === "open" ? (
-        <CommitForm opportunityId={opp.id} remaining={remaining} />
+        <CommitForm opportunityId={opp.id} remaining={remaining} requestId={crypto.randomUUID()} />
       ) : (
         <p className="text-sm text-muted-foreground">Peluang {opp.status}.</p>
       )}

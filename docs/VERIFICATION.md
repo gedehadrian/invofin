@@ -10,7 +10,7 @@
 - Browser lokal: login vendor, simpan draft, signed upload invoice melalui form. Preview lima peran juga diperiksa sebelumnya pada desktop dan mobile.
 - TypeScript, production build serta lint pada file yang diubah diperiksa sebelum commit.
 
-Hasil terbaru: 23 unit test, 12 pengujian PostgreSQL, 7 pengujian workflow lokal dan 6 pengujian Auth lokal lulus (48 total). Regression test memastikan invoice OCR berstatus `needs_review`, `failed` atau `pending` mendapat band `review`, walaupun field yang terbaca cocok.
+Hasil akhir implementasi: 30 unit, 14 PostgreSQL, 7 workflow lokal, 6 Auth lokal dan 3 operasi lokal lulus (60 test Node termasuk container test), serta 2 test Python. Regression test memastikan invoice OCR berstatus `needs_review`, `failed` atau `pending` mendapat band `review`, walaupun field yang terbaca cocok.
 
 ## Putaran 1, 6 November 2026
 
@@ -40,4 +40,17 @@ Smoke test cloud bersifat opt-in: `node --env-file=.env.local --env-file=.env.pr
 
 ## Batas bukti
 
-Satu invoice sintetis bukan pengukuran akurasi OCR, fraud atau risiko kredit. BAST tetap manual. Pengujian API lokal tidak mencakup seluruh perilaku browser dan seluruh variasi permission. Belum ada transfer dana, audit keamanan menyeluruh, load test, pemindaian malware atau model credit scoring terlatih. Lihat prioritas lanjutan di [panduan prototipe](PROTOTYPE.md).
+Pengujian sintetis bukan pengukuran akurasi fraud/kredit pada nasabah. BAST kini memakai Azure Layout, dengan review konservatif. Pengujian API tidak mencakup seluruh perilaku browser/permission. Belum ada transfer dana, audit keamanan menyeluruh, load test, malware scan atau model kredit nasabah tervalidasi. Lihat [runbook](OPERATIONS.md).
+
+## Putaran 2-6, 6 November 2026
+
+- Dataset 144 kasus: 12 sumber × invoice/PO/BAST × 4 varian; lineage, split dan checksum diuji. Dua panggilan Azure invoice heldout memberi nomor benar 1/2 dan lima field lain 2/2, keduanya review (3,54-4,06 detik). Satu BAST heldout memberi enam field benar, review item (4,70 detik). Sampel ini tidak membuktikan target proposal.
+- Matching referensi/item/kuantitas dan identitas bisnis mencegah nominal berubah melewati screening. Confidence item non-finite juga diarahkan ke review.
+- Browser lokal: login/dashboard lima peran dan preset invoice/PO/BAST diperiksa. Checklist UAT membedakan bukti browser dari API.
+- Baseline 600 baris sintetis, pemisahan grup/waktu, lineage dan reproduksibilitas; holdout AUC sekitar 0,635, Brier 0,222. Kontribusi linear tepat terhadap log-odds, bukan SHAP. Oracle screening 12 kelompok (8 review, 4 konsisten) menguji aturan dengan field label, bukan akurasi OCR/fraud nyata.
+- Next.js/eslint-config-next diperbarui ke 16.4.5; CLI shadcn dan form library yang tidak dipakai dihapus. State CSS yang dipakai disimpan sebagai subset MIT. Minimatch dev di-override ke versi yang diperbaiki. Audit npm lengkap/runtime: 0 temuan pada pemeriksaan ini; lint seluruh repo, TypeScript dan build lulus.
+- Operasi lokal nyata: 35 reservasi paralel menghasilkan tepat 30 diterima dan 5 rate-limit. Dry run retensi mempertahankan byte; apply menghapus quarantine satu kali serta menjaga canonical dan metadata audit.
+- PostgreSQL memverifikasi retry staff-only/idempotent/audited serta satu notifikasi per transisi kegagalan. Seluruh fungsi baru service-only. Lint PostgreSQL lokal dan cloud tidak menemukan kesalahan schema; semua tabel public cloud memiliki RLS aktif.
+- Restore logical lokal ke database sementara lulus: Auth/public/metadata Storage dan 30 RLS policy dibandingkan. ACL/ownership, Vault, byte objek dan cloud tidak dicakup; sumber tidak di-reset.
+- Cloud: migration `20261105200150_document_operations.sql` diterapkan aditif; Auth minimum password 12 dan secure password change diaktifkan tanpa mengganti properti lain; Vercel diberi `INVOFIN_DEPLOYMENT_ENV=staging`.
+- GitHub Actions ditambahkan dengan read-only permissions dan action resmi yang dikunci SHA. Tes lokal Docker tetap dijalankan terpisah dari CI. Status run GitHub/deployment akhir dicatat setelah verifikasi.

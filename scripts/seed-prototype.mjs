@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 // Dedicated synthetic identities only. Existing organizations, invoices and users are preserved.
 if (!process.argv.includes("--apply")) throw new Error("Use --apply to create the InvoFin prototype identities.");
 const env = parseEnv(readFileSync(".env.local", "utf8"));
+if ([process.env.INVOFIN_DEPLOYMENT_ENV,env.INVOFIN_DEPLOYMENT_ENV,process.env.NEXT_PUBLIC_APP_ENV,env.NEXT_PUBLIC_APP_ENV].includes("production")) throw new Error("Prototype seed is disabled in production.");
 if (new URL(env.NEXT_PUBLIC_SUPABASE_URL).hostname !== "skwwgjjgeativyevkkpl.supabase.co") throw new Error("Expected the established InvoFin cloud project.");
 const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const credentialsPath = ".env.prototype.local";

@@ -38,8 +38,8 @@ export interface Database {
     Tables: {
       document_uploads: {
         Row: DocumentUpload;
-        Insert: Omit<DocumentUpload, "created_at" | "expires_at" | "document_id"> & { created_at?: string; expires_at?: string; document_id?: string | null };
-        Update: Partial<Pick<DocumentUpload, "document_id">>;
+        Insert: Omit<DocumentUpload, "created_at" | "expires_at" | "document_id" | "quarantine_purged_at"> & { created_at?: string; expires_at?: string; document_id?: string | null; quarantine_purged_at?: string | null };
+        Update: Partial<Pick<DocumentUpload, "document_id" | "quarantine_purged_at">>;
         Relationships: [];
       };
       document_jobs: {
@@ -468,6 +468,8 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      reserve_document_upload: {Args:{p_actor:string;p_upload:Json};Returns:string};
+      retry_document_job: {Args:{p_job:string;p_actor:string};Returns:boolean};
       complete_onboarding: { Args: { p_actor: string; p_full_name: string; p_organization_name: string; p_type: string; p_sector?: string | null }; Returns: string };
       configure_document_worker: { Args: { p_endpoint: string; p_secret: string }; Returns: boolean };
       confirm_invoice_extraction: { Args: { p_invoice_id: string; p_actor: string; p_vendor: string; p_number: string; p_issue: string; p_due: string; p_amount: number }; Returns: boolean };
@@ -516,7 +518,7 @@ export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type DocumentUpload = {
   id: string; invoice_id: string; vendor_org_id: string; uploaded_by: string;
   document_type: DocumentType; original_filename: string; mime_type: string; size_bytes: number;
-  storage_path: string; final_path: string; document_id: string | null; expires_at: string; created_at: string;
+  storage_path: string; final_path: string; document_id: string | null; expires_at: string; created_at: string; quarantine_purged_at: string | null;
 };
 export type DocumentJob = {
   id: string; document_id: string; status: "queued" | "processing" | "retry" | "completed" | "failed";

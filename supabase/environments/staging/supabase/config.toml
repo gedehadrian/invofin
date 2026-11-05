@@ -1,0 +1,6 @@
+# Partial hosted policy: only explicitly declared properties are pushed by CLI 3.0.0.
+# Review config diff first. This file is not a local stack configuration.
+[auth]
+minimum_password_length = 12
+[auth.email]
+secure_password_change = true
