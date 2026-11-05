@@ -48,6 +48,9 @@ test("PostgreSQL migrations and cross-organization authorization", async t => {
       await assert.rejects(asUser(1,()=>db.query("insert into organization_members(user_id,organization_id,role) values($1,$2,'admin')",[uid(1),uid(15)])));
       await assert.rejects(asUser(1,()=>db.query("insert into organizations(name,type,status) values('Fake','platform','active')")));
     });
+    await t.test("business identity rejects same invoice after casing/whitespace or amount changes",async()=>{
+      await assert.rejects(asUser(1,()=>db.query("insert into invoices(vendor_org_id,buyer_org_id,invoice_number,issue_date,due_date,amount,created_by) values($1,$2,' inv-a ','2026-10-01','2026-12-01',1000001,$3)",[uid(11),uid(13),uid(1)])));
+    });
     await t.test("trusted onboarding is replay-safe, pending-only and atomic on membership failure", async () => {
       for (const n of [81,82]) await db.query("insert into auth.users(id,email) values($1,$2)",[uid(n),`onboarding${n}@invofin.invalid`]);
       const args = [uid(81),"Nama Contoh","Organisasi Baru","vendor","Manufaktur"];

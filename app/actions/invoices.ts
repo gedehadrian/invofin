@@ -157,6 +157,7 @@ export async function confirmExtraction(
 }
 
 function friendlyDbError(message: string) {
+  if(message.includes("invoices_business_identity_unique")) return "Invoice dengan nomor dan pasangan vendor-buyer ini sudah ada. Buka pengajuan yang sudah tersimpan.";
   if (message.includes("invoice_documents_invoice_sha256_unique")) {
     return "File invoice ini sudah terdaftar (SHA-256 unik). Unggahan ditolak.";
   }

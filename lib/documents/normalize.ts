@@ -3,6 +3,7 @@ import type { ExtractedFields } from "@/lib/risk/rules-engine";
 export type AzureField = {
   content?: string; valueString?: string; valueDate?: string; valueNumber?: number;
   valueCurrency?: { amount?: number; currencyCode?: string }; confidence?: number;
+  valueArray?: AzureField[]; valueObject?: Record<string,AzureField>;
 };
 export type ExtractionReview = { fields: ExtractedFields; confidenceByField: Record<string, number | null>; reviewReasons: string[] };
 
@@ -54,6 +55,8 @@ export function normalizeAzureFields(source: Record<string, AzureField>, thresho
     issueDate: normalizeDate(source.InvoiceDate?.valueDate ?? source.InvoiceDate?.content),
     dueDate: normalizeDate(source.DueDate?.valueDate ?? source.DueDate?.content),
     purchaseOrder: text(source.PurchaseOrder), currency: source.InvoiceTotal?.valueCurrency?.currencyCode?.toUpperCase() ?? null,
+    documentNumber:text(source.InvoiceId),
+    items:source.Items?.valueArray?.map(item=>{const row=item.valueObject??{};return {description:text(row.ProductCode)??text(row.Description)??"",quantity:normalizeAmount(row.Quantity?.valueNumber??row.Quantity?.content),unitPrice:normalizeAmount(row.UnitPrice?.valueCurrency?.amount??row.UnitPrice?.valueNumber??row.UnitPrice?.content),amount:normalizeAmount(row.Amount?.valueCurrency?.amount??row.Amount?.content),confidence:Math.min(item.confidence??0,row.Description?.confidence??row.ProductCode?.confidence??0,row.Quantity?.confidence??0)};}),
   };
   const required: [keyof ExtractedFields, AzureField | undefined][] = [["invoiceNumber", source.InvoiceId], ["buyerName", buyer], ["vendorName", source.VendorName], ["amount", source.InvoiceTotal], ["issueDate", source.InvoiceDate], ["dueDate", source.DueDate]];
   const confidenceByField: Record<string, number | null> = {};

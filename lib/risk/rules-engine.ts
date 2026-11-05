@@ -1,4 +1,8 @@
+import { threeWayFindings } from "./three-way";
 export const REASON_CODES = {
+  REFERENCE_MISMATCH: "Referensi PO/invoice pada dokumen pendukung berbeda.",
+  ITEMS_MISMATCH: "Rincian barang, kuantitas atau harga antar dokumen berbeda.",
+  SUPPORTING_DATA_INCOMPLETE: "Data referensi atau item dokumen pendukung belum cukup pasti untuk dicocokkan otomatis.",
   DUPLICATE_INVOICE_FILE: "Hash SHA-256 invoice identik dengan dokumen yang sudah ada.",
   DUPLICATE_SUPPORTING_FILE: "PO atau BAST memakai hash yang sudah muncul di invoice lain.",
   INVOICE_NUMBER_MISMATCH: "Nomor invoice pada formulir tidak cocok dengan hasil OCR.",
@@ -25,6 +29,9 @@ export const REASON_CODES = {
 export type ReasonCode = keyof typeof REASON_CODES;
 
 export const SEVERITY: Record<ReasonCode, number> = {
+  REFERENCE_MISMATCH: 20,
+  ITEMS_MISMATCH: 20,
+  SUPPORTING_DATA_INCOMPLETE: 8,
   DUPLICATE_INVOICE_FILE: 35,
   DUPLICATE_SUPPORTING_FILE: 15,
   INVOICE_NUMBER_MISMATCH: 20,
@@ -53,6 +60,7 @@ export const SEVERITY: Record<ReasonCode, number> = {
  * band "review" berapa pun skornya. Ini sinyal pemeriksaan, bukan bukti fraud.
  */
 export const CRITICAL_CODES: ReadonlySet<ReasonCode> = new Set([
+  "REFERENCE_MISMATCH", "ITEMS_MISMATCH", "SUPPORTING_DATA_INCOMPLETE",
   "DUPLICATE_INVOICE_FILE",
   "INVOICE_NUMBER_MISMATCH",
   "AMOUNT_MISMATCH",
@@ -64,6 +72,9 @@ export const CRITICAL_CODES: ReadonlySet<ReasonCode> = new Set([
 ]);
 
 export type ExtractedFields = {
+  documentNumber?: string | null;
+  invoiceReference?: string | null;
+  items?: { description: string; quantity: number | null; unitPrice?: number | null; amount?: number | null; confidence?: number | null }[];
   invoiceNumber?: string | null;
   buyerName?: string | null;
   vendorName?: string | null;
@@ -113,9 +124,9 @@ function normalize(value?: string | null) {
   return (value ?? "").replace(/[\s.-]/g, "").toUpperCase();
 }
 
-function amountsDiffer(a?: number | null, b?: number | null, tolerance = 0.02) {
+function amountsDiffer(a?: number | null, b?: number | null) {
   if (a == null || b == null || a <= 0 || b <= 0) return false;
-  return Math.abs(a - b) / Math.max(a, b) > tolerance;
+  return Math.abs(a - b) > .01 + Number.EPSILON * Math.max(a,b);
 }
 
 const LEGAL_FORMS = new Set([
@@ -237,13 +248,14 @@ export function runDocumentConsistencyRules(args: {
     add("VENDOR_NAME_MISMATCH", true);
   }
 
-  if (amountsDiffer(poDoc?.extracted?.amount, args.invoice.amount, 0.05)) {
+  if (amountsDiffer(poDoc?.extracted?.amount, args.invoice.amount)) {
     add("PO_AMOUNT_MISMATCH", true);
   }
-  if (amountsDiffer(bastDoc?.extracted?.amount, args.invoice.amount, 0.05)) {
+  if (amountsDiffer(bastDoc?.extracted?.amount, args.invoice.amount)) {
     add("BAST_AMOUNT_MISMATCH", true);
   }
 
+  for(const code of threeWayFindings(invoiceDoc?.extracted,poDoc?.extracted,bastDoc?.extracted)) add(code,code!=="SUPPORTING_DATA_INCOMPLETE");
   return findings;
 }
 

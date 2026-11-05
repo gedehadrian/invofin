@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getExtractionProvider, ManualExtractionProvider, type DocumentExtractionProvider, type ExtractionResult } from "./azure";
+import { getExtractionProvider, type ExtractionResult } from "./azure";
 import type { Json } from "@/lib/database.types";
 
 /** One leased job per request bounds memory and runtime; database commits the result atomically. */
@@ -16,8 +16,8 @@ export async function processNextDocumentJob() {
   try {
     const { data: blob, error: downloadError } = await db.storage.from("invoice-documents").download(doc.storage_path);
     if (downloadError || !blob) throw new Error("DOCUMENT_DOWNLOAD_FAILED");
-    const provider: DocumentExtractionProvider = doc.document_type === "bast" ? new ManualExtractionProvider() : getExtractionProvider();
-    result = await provider.extractInvoice({ bytes: await blob.arrayBuffer(), mimeType: doc.mime_type, filename: doc.original_filename });
+    const provider = getExtractionProvider();
+    result = await provider.extractInvoice({ bytes: await blob.arrayBuffer(), mimeType: doc.mime_type, filename: doc.original_filename,documentType:doc.document_type });
   } catch {
     result = { provider: "document-worker", status: "failed" as const, fields: {}, raw: { reason: "EXTRACTION_REQUEST_FAILED" }, processedAt: new Date().toISOString() };
   }

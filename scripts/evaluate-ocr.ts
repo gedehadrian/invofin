@@ -18,15 +18,16 @@ async function main() {
   const provider=new AzureDocumentIntelligenceProvider();
   if(!provider.isConfigured()) throw new Error("Azure is not configured.");
   const aggregate: Record<string,{correct:number;total:number;missing:number}>={};
-  let failed=0,manualReview=0;const latencies:number[]=[];
+  let failed=0,manualReview=0;const latencies:number[]=[],providers=new Set<string>();
   for(const item of selected) {
     const location=await realpath(item.file);const relative=path.relative(await realpath(process.cwd()),location);
     if(relative.startsWith("..")||path.isAbsolute(relative)) throw new Error("Dataset files must stay within the project.");
     const bytes=await readFile(location);
     if(item.sha256 && createHash("sha256").update(bytes).digest("hex")!==item.sha256) throw new Error("Dataset checksum mismatch.");
     const started=performance.now();
-    const result=await provider.extractInvoice({bytes:bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),mimeType:item.mimeType,filename:path.basename(location)});
+    const result=await provider.extractInvoice({bytes:bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),mimeType:item.mimeType,filename:path.basename(location),documentType:item.documentType});
     if(result.status==="failed") failed++;
+    providers.add(result.provider);
     latencies.push(performance.now()-started);
     if(result.status!=="completed") manualReview++;
     for(const [field,score] of Object.entries(evaluateExtraction(item.expected,result.fields))) {
@@ -36,7 +37,7 @@ async function main() {
   }
   // Aggregate-only report: no raw invoice text, names, keys or signed URLs.
   latencies.sort((a,b)=>a-b);
-  console.log(JSON.stringify({schemaVersion:2,datasetVersion:manifest.datasetVersion,datasetKind:manifest.datasetKind,provider:provider.name,cases:selected.length,failed,manualReview,latencyMs:{p50:latencies[Math.ceil(latencies.length*.5)-1],p95:latencies[Math.ceil(latencies.length*.95)-1]},fields:Object.fromEntries(Object.entries(aggregate).map(([key,value])=>[key,{...value,accuracy:value.correct/value.total}]))},null,2));
+  console.log(JSON.stringify({schemaVersion:2,datasetVersion:manifest.datasetVersion,datasetKind:manifest.datasetKind,providers:[...providers],cases:selected.length,failed,manualReview,latencyMs:{p50:latencies[Math.ceil(latencies.length*.5)-1],p95:latencies[Math.ceil(latencies.length*.95)-1]},fields:Object.fromEntries(Object.entries(aggregate).map(([key,value])=>[key,{...value,accuracy:value.correct/value.total}]))},null,2));
   if(failed) process.exitCode=1;
 }
 main().catch(error=>{console.error(error instanceof Error?error.message:"Evaluation failed.");process.exitCode=1;});

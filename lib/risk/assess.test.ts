@@ -5,6 +5,8 @@ import { companyNamesMatch, type DocumentSnapshot, type InvoiceInput } from "./r
 
 // Mirrors public/demo/dummy-invoice.pdf as read by Azure prebuilt-invoice.
 const ocr = {
+  purchaseOrder:"PO-001",
+  items:[{description:"Komponen",quantity:5,unitPrice:5000000,amount:25000000,confidence:1}],
   invoiceNumber: "INV-DEMO-2026-001",
   buyerName: "PT Andi Buyer A",
   vendorName: "PT Sari Vendor A",
@@ -28,8 +30,8 @@ const honest: InvoiceInput = {
 
 const documents: DocumentSnapshot[] = [
   { documentType: "invoice", sha256: "inv", extractionStatus: "completed", extracted: ocr },
-  { documentType: "purchase_order", sha256: "po", extractionStatus: "pending" },
-  { documentType: "bast", sha256: "bast", extractionStatus: "pending" },
+  { documentType: "purchase_order", sha256: "po", extractionStatus: "completed",extracted:ocr },
+  { documentType: "bast", sha256: "bast", extractionStatus: "completed",extracted:ocr },
 ];
 
 function assess(invoice: InvoiceInput) {
@@ -51,7 +53,7 @@ test("uncertain invoice OCR forces review even when extracted fields match", () 
 });
 
 test("inflated amount forces review regardless of score", () => {
-  const result = assess({ ...honest, amount: 250_000_000 });
+  const result = runRiskAssessment({invoice:{...honest,amount:250_000_000},documents:documents.map(doc=>doc.documentType==="invoice"?doc:{...doc,extracted:{...ocr,amount:250_000_000}}),vendorHistory:[],azureConfigured:true});
   assert.ok(result.score >= 60, "score alone would still look fundable");
   assert.equal(result.riskBand, "review");
   assert.ok(result.reasonCodes.some((r) => r.code === "AMOUNT_MISMATCH"));

@@ -1,5 +1,6 @@
 import type { ExtractedFields } from "@/lib/risk/rules-engine";
 import { normalizeAzureFields, type AzureField } from "./normalize";
+import {normalizeLayout,type LayoutResult} from "./layout";
 
 export type ExtractionResult = {
   provider: string;
@@ -18,12 +19,13 @@ export interface DocumentExtractionProvider {
     bytes: ArrayBuffer;
     mimeType: string;
     filename: string;
+    documentType?: "invoice"|"purchase_order"|"bast"|"other";
   }): Promise<ExtractionResult>;
 }
 
 type AzureAnalyzeOperation = {
   status: string;
-  analyzeResult?: {
+  analyzeResult?: LayoutResult & {
     documents?: Array<{
       fields?: Record<string, AzureField>;
     }>;
@@ -77,6 +79,7 @@ export class AzureDocumentIntelligenceProvider implements DocumentExtractionProv
     bytes: ArrayBuffer;
     mimeType: string;
     filename: string;
+    documentType?: "invoice"|"purchase_order"|"bast"|"other";
   }): Promise<ExtractionResult> {
     const endpoint = process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT?.replace(
       /\/$/,
@@ -110,7 +113,8 @@ export class AzureDocumentIntelligenceProvider implements DocumentExtractionProv
 
     const deadline = AbortSignal.timeout(35_000);
     try {
-      const analyzeUrl = `${endpoint}/documentintelligence/documentModels/prebuilt-invoice:analyze?api-version=2024-11-30`;
+      const model=input.documentType==="bast"?"prebuilt-layout":"prebuilt-invoice";
+      const analyzeUrl = `${endpoint}/documentintelligence/documentModels/${model}:analyze?api-version=2024-11-30${model==="prebuilt-layout"?"&features=keyValuePairs":""}`;
       const start = await fetch(analyzeUrl, {
         method: "POST",
         headers: {
@@ -145,9 +149,9 @@ export class AzureDocumentIntelligenceProvider implements DocumentExtractionProv
       }
 
       const fields = result.analyzeResult?.documents?.[0]?.fields ?? {};
-      const normalized = normalizeAzureFields(fields);
+      const normalized = model==="prebuilt-layout"?normalizeLayout(result.analyzeResult??{}):normalizeAzureFields(fields);
       return {
-        provider: this.name,
+        provider: `azure-document-intelligence:${model}`,
         status: normalized.reviewReasons.length ? "needs_review" : "completed",
         fields: normalized.fields,
         reviewReasons: normalized.reviewReasons,
