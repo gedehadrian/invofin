@@ -4,7 +4,7 @@ Disepakati 6 November 2026: selesaikan prototipe tanpa uang nyata, memakai invoi
 
 | Putaran | Cakupan dan kriteria selesai | Status |
 | --- | --- | --- |
-| 1 | Akun dan onboarding dua tahap yang dapat dilanjutkan; organisasi pending/active/suspended; reset password lengkap; RPC atomik dan tes auth | Dikerjakan |
+| 1 | Akun dan onboarding dua tahap yang dapat dilanjutkan; organisasi pending/active/suspended; reset password lengkap; RPC atomik dan tes auth | Selesai 6 November 2026; implementasi `dcd55ce`, cloud terverifikasi |
 | 2 | Generator invoice/PO/BAST sintetis bervariasi, augmentasi yang dapat diulang, ground truth, manifest dataset, split berdasarkan dokumen asal dan evaluator OCR | Berikutnya |
 | 3 | OCR BAST, matching referensi/item tiga dokumen, fingerprint bisnis dan skenario duplikasi hasil ekspor/foto ulang | Belum |
 | 4 | Rincian biaya/advance bersih, alasan risiko yang jelas, perapian UI dan UAT lima peran dengan fixture bervariasi | Belum |
@@ -12,6 +12,8 @@ Disepakati 6 November 2026: selesaikan prototipe tanpa uang nyata, memakai invoi
 | 6 | Pemeriksaan keamanan, monitoring/retry/retensi, backup/restore, konfigurasi staging/production terpisah, runbook migrasi/promotion/rollback dan verifikasi deployment akhir | Belum |
 
 Setiap putaran mencakup implementasi, pemeriksaan yang relevan, commit dan laporan hasil. Push GitHub mengikuti instruksi pengguna. Enam putaran ini tidak mencakup payment gateway uang nyata, penyaluran/pembayaran dana, integrasi bank/ERP/e-Faktur nyata atau klaim model kredit sudah tervalidasi untuk nasabah.
+
+Putaran 1: 23 unit test, 12 tes PostgreSQL, 7 tes workflow lokal dan 6 tes Auth lokal lulus (48 total), berikut TypeScript, lint terarah dan production build. Email sandbox Mailpit diuji sampai callback PKCE; cloud diuji dengan token recovery tanpa mengirim email. Uji pengiriman email ke kotak masuk nyata serta konfigurasi SMTP per lingkungan ditutup pada putaran 6.
 
 ## Kontrak data augmentasi dan retraining
 

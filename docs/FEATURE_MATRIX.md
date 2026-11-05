@@ -1,6 +1,6 @@
 # Inventaris fitur dan kecocokan proposal
 
-Ditinjau 6 November 2026 terhadap kode pada commit `8ab6c0d`, proposal InvoFin AI for Good bagian 3-7, dan Value Proposition Canvas. Ini inventaris kode dan bukti yang sudah tersedia; bukan pengulangan audit atau smoke test cloud. Verifikasi runtime terakhir tercatat 4 November 2026 di `VERIFICATION.md`.
+Ditinjau 6 November 2026, diperbarui setelah putaran 1 pada commit implementasi `dcd55ce`. Acuan: proposal InvoFin AI for Good bagian 3-7 dan Value Proposition Canvas. Verifikasi akun terbaru tercatat 6 November 2026 di `VERIFICATION.md`; ini belum audit keamanan menyeluruh.
 
 Status **Ada** berarti tersedia dalam prototipe. **Parsial** berarti hanya sebagian alur/kebutuhan terpenuhi. **Belum** berarti belum ada implementasi operasional. Seluruh pendanaan masih simulasi.
 
@@ -9,8 +9,8 @@ Status **Ada** berarti tersedia dalam prototipe. **Parsial** berarti hanya sebag
 | Area | Fitur tersedia | Batas yang perlu diketahui |
 | --- | --- | --- |
 | Publik | Landing page, tentang produk, panduan alur, demo lima peran tanpa login | Demo menggunakan state di memori, terpisah dari data aplikasi |
-| Autentikasi | Daftar, login, logout, callback email, profil dan membership organisasi | Action kirim email reset ada; halaman memilih password baru belum ada |
-| Onboarding | Pendaftaran vendor/buyer/lender membuat organisasi pending; admin dapat mengaktifkan atau menangguhkan | Belum e-KYC, assisted onboarding, invitation, atau alur pemulihan registrasi parsial |
+| Autentikasi | Daftar, login, logout, callback email/PKCE/token hash, reset password sampai penyimpanan password baru, profil dan membership | Pengiriman email sandbox diuji; SMTP/deliverability cloud per lingkungan belum diuji ke kotak masuk nyata |
+| Onboarding | Akun diverifikasi lalu organisasi pending dibuat lewat RPC atomik/idempotent; pendaftaran terputus dapat dilanjutkan; halaman pending/suspended dan aktivasi admin | Belum e-KYC, assisted onboarding atau invitation tim |
 | Lima peran | Vendor, anchor buyer, lender, Risk Officer, admin; menu dan halaman sesuai peran | Daftar pengguna admin masih baca saja; belum editor membership/undangan tim |
 | Dashboard | KPI, grafik bulanan, filter tahun, daftar invoice, pencarian, filter status, pagination tampilan, ekspor CSV | Ringkasan dibatasi subset data, bukan agregasi keuangan/ledger menyeluruh |
 | Vendor | Simpan draft, pilih buyer, isi nomor/tanggal/nominal/advance/deskripsi; upload invoice/PO/BAST; ajukan; tinjau/koreksi hasil ekstraksi; lihat detail dan timeline | Ketiga dokumen wajib; status tidak bisa dilompati melalui update client |
@@ -41,7 +41,7 @@ Status **Ada** berarti tersedia dalam prototipe. **Parsial** berarti hanya sebag
 | Komitmen aman terhadap retry | Ada | Idempotency key, locking, pembatasan overfunding; bukan eksekusi transfer dana |
 | Isolasi organisasi | Ada | RLS, pembatasan dokumen lender, fungsi internal dibatasi; belum audit akses menyeluruh |
 | Deployment | Ada | Vercel + Supabase cloud; VPS tidak diperlukan oleh runtime prototipe yang sekarang |
-| Evaluasi teknis | Ada | 21 unit, 11 PostgreSQL, 7 integrasi lokal tercatat lulus; smoke cloud sintetis, evaluator OCR berlabel |
+| Evaluasi teknis | Ada | 23 unit, 12 PostgreSQL, 7 workflow lokal, 6 Auth lokal tercatat lulus; smoke cloud sintetis dan evaluator OCR berlabel |
 | Arsitektur | Parsial terhadap istilah proposal | Modular monolith dengan batas modul dan worker; belum microservices yang dideploy independen |
 
 ## Kecocokan dengan proposal dan canvas
@@ -73,7 +73,7 @@ Target akurasi, fraud mendekati nol, straight-through processing 80% dan pencair
 
 | Tahap | Pekerjaan | Hasil yang dapat diperiksa |
 | --- | --- | --- |
-| P0 - prototipe lengkap | Selesaikan onboarding pending/aktif/suspended, pemulihan registrasi parsial, reset password lengkap | Akun baru dapat mendaftar, diaktifkan admin, login dan memulihkan akses melalui UI |
+| Selesai putaran 1 | Onboarding pending/aktif/suspended, pendaftaran yang dapat dilanjutkan, reset password lengkap | UI lokal dan smoke cloud lulus; deliverability email cloud ditangani pada putaran 6 |
 | P0 - kualitas dokumen | Tambah variasi fixture sintetis normal/duplikat/nominal berubah/scan buram; label independen dan laporan evaluator | Demo bukan hanya satu invoice; field accuracy, correction rate, latensi dan false positive tercatat |
 | P0 - cakupan proposal | OCR BAST, cross-reference PO/BAST, matching item/kuantitas, fingerprint bisnis | Kasus invoice diekspor ulang atau nominal diubah tetap ditandai untuk pemeriksaan |
 | P0 - UX bisnis | Tampilkan rincian biaya/advance bersih, alasan yang mudah dipahami, rapikan halaman operasional dan checklist UAT lima peran | Semua langkah dapat dicoba tim tanpa script/penjelasan developer |

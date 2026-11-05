@@ -10,7 +10,19 @@
 - Browser lokal: login vendor, simpan draft, signed upload invoice melalui form. Preview lima peran juga diperiksa sebelumnya pada desktop dan mobile.
 - TypeScript, production build serta lint pada file yang diubah diperiksa sebelum commit.
 
-Hasil terakhir: 21 unit test, 11 pengujian PostgreSQL dan 7 pengujian integrasi lokal lulus. Regression test memastikan invoice OCR berstatus `needs_review`, `failed` atau `pending` mendapat band `review`, walaupun field yang terbaca cocok.
+Hasil terbaru: 23 unit test, 12 pengujian PostgreSQL, 7 pengujian workflow lokal dan 6 pengujian Auth lokal lulus (48 total). Regression test memastikan invoice OCR berstatus `needs_review`, `failed` atau `pending` mendapat band `review`, walaupun field yang terbaca cocok.
+
+## Putaran 1, 6 November 2026
+
+- Implementasi `dcd55ce`: pendaftaran dua tahap, organisasi dibuat setelah identitas login tersedia, RPC service-only dengan advisory lock, enrollment replay-safe dan rollback saat membership gagal.
+- Middleware mempertahankan cookie refresh saat redirect. Akun tanpa membership kembali ke onboarding; organisasi pending/suspended tidak masuk ke workspace.
+- Pemulihan password mendukung PKCE dan SSR token-hash; redirect dibatasi workspace serta path akun yang diizinkan. Password baru minimal 12 karakter dengan batas 72 byte dan konfirmasi yang sama.
+- Supabase lokal: signup tanpa enrollment prematur, dua request onboarding bersamaan membuat satu membership, pending/suspended/active sesuai halaman; password lama serta token recovery yang dipakai ulang ditolak.
+- Email recovery benar-benar dikirim ke Mailpit lokal lalu diverifikasi melalui Auth dan callback PKCE Next.js. Tidak ada email nyata yang dikirim dalam smoke cloud.
+- Browser lokal: login identitas sintetis tanpa organisasi, selesaikan form onboarding, lihat halaman pending, aktifkan fixture melalui operator lokal, klik periksa status dan masuk ke workspace.
+- TypeScript, lint terarah dan production build lulus. Advisor lokal tidak mengembalikan warning.
+- Cloud: migrasi onboarding diterapkan tanpa reset; grant RPC hanya service-role. Deployment `dpl_FsWGQT587BRrMUneNmtYcsyZ6SBL` Ready, route pemulihan tampil. Smoke dengan satu identitas sintetis baru membuktikan onboarding, idempotensi, halaman pending serta recovery SSR.
+- Batas: belum menguji deliverability email cloud ke kotak masuk nyata. Konfigurasi SMTP per lingkungan, audit menyeluruh dan promotion staging/production masuk putaran 6. Runtime prototipe tetap memakai data sintetis dan payment stub.
 
 ## Cloud InvoFin, 4 November 2026
 

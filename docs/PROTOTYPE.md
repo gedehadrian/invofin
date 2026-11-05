@@ -26,14 +26,14 @@ Invoice PDF yang sama tidak dapat diajukan kembali. Untuk demonstrasi berulang g
 
 ## Pekerjaan berikutnya
 
-[Inventaris fitur lengkap, pencocokan proposal, dan prioritas P0-P3](FEATURE_MATRIX.md) diperbarui 6 November 2026. Aktivasi/penangguhan organisasi dasar sudah ada; yang perlu diselesaikan adalah keseluruhan onboarding dan pemulihan akses. OCR BAST, fingerprint bisnis, SHAP/model kredit, serta integrasi pembayaran/ERP masih menjadi celah terhadap proposal.
+[Inventaris fitur lengkap dan pencocokan proposal](FEATURE_MATRIX.md) diperbarui 6 November 2026. [Rencana enam putaran](SIX_ROUNDS.md) menjadi urutan pengerjaan yang disepakati: putaran 1 akun/onboarding/pemulihan akses selesai; berikutnya augmentasi dokumen sintetis. OCR BAST, fingerprint bisnis dan baseline model tetap dilanjutkan pada putaran berikutnya. Pembayaran uang nyata berada di luar enam putaran ini.
 
 | Prioritas | Pekerjaan | Kriteria selesai |
 | --- | --- | --- |
 | Berikutnya | Skenario uji OCR lebih beragam | Dataset berlabel: scan buram, format Indonesia, pajak, tanggal ambigu; ukur akurasi per field dan jumlah koreksi |
 | Berikutnya | Fraud evaluation | Skenario duplicate/reused PO, nilai berbeda, buyer tidak aktif; ukur false positive/false negative dengan label independen |
 | Berikutnya | Monitoring dan retensi | Alert job gagal/menumpuk, biaya/latensi OCR, pembersihan unggahan yatim dengan masa retensi, pengujian restore |
-| Sebelum pilot | Onboarding dan akses | Aktivasi organisasi, validasi identitas, pemulihan akun, pencabutan sesi/akses dan pengujian permission lengkap |
+| Sebelum pilot | Onboarding dan akses | Validasi identitas, pencabutan sesi/akses dan pengujian permission lengkap; onboarding atomik, halaman status dan reset password dasar selesai pada putaran 1 |
 | Sebelum pilot | Validasi keamanan menyeluruh | Audit scoped, dependency remediation, rate limit atomik, scan malware dan dokumen berbahaya, abuse testing |
 | Sebelum pilot | Model risiko kredit | Histori pembayaran berizin, label default, split waktu, baseline, kalibrasi, explainability dan pemantauan drift |
 | Sebelum transaksi nyata | Payment dan ledger | Provider, webhook terverifikasi, ledger berpasangan, rekonsiliasi, idempotensi pencairan dan review legal |
