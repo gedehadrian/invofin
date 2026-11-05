@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test lib/risk/*.test.ts lib/auth/*.test.ts lib/documents/*.test.ts lib/*.test.ts modules/dashboard/*.test.ts",
+    "test": "tsx --test lib/risk/*.test.ts lib/auth/*.test.ts lib/documents/*.test.ts lib/funding/*.test.ts lib/*.test.ts modules/dashboard/*.test.ts",
     "test:db": "tsx --test tests/database.test.ts",
     "test:local": "node --env-file=.env.test.local node_modules/tsx/dist/cli.mjs --test tests/local-stack.test.ts",
     "test:auth:local": "node --env-file=.env.test.local node_modules/tsx/dist/cli.mjs --test tests/auth-local.test.ts",

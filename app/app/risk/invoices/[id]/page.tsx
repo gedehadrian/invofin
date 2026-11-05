@@ -46,9 +46,9 @@ export default async function RiskInvoiceDetail({
       {risk ? (
         <div className="surface p-4 text-sm">
           <RiskBandBadge band={risk.risk_band as RiskBand} />
-          <p className="mt-2">Skor {risk.score} · {risk.assessment_method}</p>
-          <p className="mt-2 text-muted-foreground">Reason codes</p>
-          <ul className="list-disc pl-5 text-slate-300">
+          <p className="mt-2">Skor aturan awal {risk.score}/100</p>
+          <p className="mt-2 text-muted-foreground">Alasan penilaian</p>
+          <ul className="list-disc pl-5 text-muted-foreground">
             {(Array.isArray(risk.reason_codes) ? risk.reason_codes : []).map((r) => {
               const item = r as { code: string; message: string };
               return (
@@ -58,9 +58,9 @@ export default async function RiskInvoiceDetail({
               );
             })}
           </ul>
-          <p className="mt-3 text-muted-foreground">Anomaly flags</p>
+          <p className="mt-3 text-muted-foreground">Indikasi yang perlu ditinjau</p>
           {anomalies.length ? (
-            <ul className="list-disc pl-5 text-slate-300">
+            <ul className="list-disc pl-5 text-muted-foreground">
               {anomalies.map((item) => (
                 <li key={item.code}>
                   {item.code}: {item.message}
@@ -68,7 +68,7 @@ export default async function RiskInvoiceDetail({
               ))}
             </ul>
           ) : (
-            <p className="pl-1 text-slate-300">Tidak ada anomali terdeteksi.</p>
+            <p className="pl-1 text-muted-foreground">Tidak ada indikasi pada aturan yang dijalankan; tetap periksa bukti dokumen.</p>
           )}
         </div>
       ) : (

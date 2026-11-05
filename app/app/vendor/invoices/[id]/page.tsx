@@ -8,6 +8,7 @@ import { ConfirmExtractionForm } from "./confirm-extraction-form";
 import { DocumentLinks } from "@/components/document-links";
 import type { RiskBand } from "@/lib/database.types";
 import { ExtractionProgress } from "@/components/extraction-progress";
+import {FinancingSummary} from "@/components/financing-summary";
 
 export default async function VendorInvoiceDetail({
   params,
@@ -47,6 +48,7 @@ export default async function VendorInvoiceDetail({
         <StatusBadge status={invoice.status} />
       </div>
       <InvoiceTimeline status={invoice.status} history={invoice.status_history ?? []} />
+      <FinancingSummary amount={Number(invoice.amount)} advancePercent={invoice.requested_advance_percent??80} feePercent={invoice.funding_opportunities?.vendor_fee_percent} />
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="surface p-4">
           <h2 className="font-medium">Dokumen</h2>
@@ -70,7 +72,7 @@ export default async function VendorInvoiceDetail({
           <h2 className="font-medium">Konfirmasi buyer</h2>
           {invoice.buyer_confirmations ? (
             <p className="mt-2 text-sm text-muted-foreground">
-              {invoice.buyer_confirmations.decision} ·{" "}
+              {invoice.buyer_confirmations.decision==="confirmed"?"Dikonfirmasi":"Disengketakan"} ·{" "}
               {invoice.buyer_confirmations.confirmed_amount
                 ? formatIdr(Number(invoice.buyer_confirmations.confirmed_amount))
                 : invoice.buyer_confirmations.note}

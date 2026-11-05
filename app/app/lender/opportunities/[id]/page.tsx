@@ -52,13 +52,14 @@ export default async function OpportunityDetail({
         {risk ? <div className="mt-2"><RiskBandBadge band={risk.risk_band} /></div> : null}
       </div>
       <Progress value={pct} />
+      <div className="surface space-y-2 p-4 text-sm"><h2 className="font-semibold">Ketentuan simulasi</h2><p>Target advance {formatIdr(Number(opp.target_amount))} · sisa {formatIdr(remaining)}</p><p>Estimasi imbal hasil {opp.lender_return_percent}% dari komitmen untuk tenor invoice ini, bukan tingkat tahunan.</p><p className="text-xs text-muted-foreground">Angka merupakan simulasi, bukan jaminan hasil. Belum ada perpindahan uang.</p></div>
       <p className="text-sm text-muted-foreground">
         Tenor {invoice ? tenorDays(invoice.issue_date, invoice.due_date) : 0} hari · buyer{" "}
-        {invoice?.buyer_confirmations?.decision ?? "—"} · jatuh tempo{" "}
+        {invoice?.buyer_confirmations?.decision==="confirmed"?"dikonfirmasi":"belum dikonfirmasi"} · jatuh tempo{" "}
         {formatDate(invoice?.buyer_confirmations?.confirmed_due_date ?? invoice?.due_date)}
       </p>
       <div className="surface p-4 text-sm">
-        <p className="font-medium">Reason codes</p>
+        <p className="font-medium">Alasan penilaian</p>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
           {(risk?.reason_codes ?? []).map((r) => (
             <li key={r.code}>{r.code}: {r.message}</li>

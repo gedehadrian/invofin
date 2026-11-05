@@ -1,0 +1,18 @@
+{
+  "invoiceNumber": "SYN-2026-0001",
+  "vendorName": "Integration vendor",
+  "buyerName": "Integration buyer",
+  "amount": 625000,
+  "issueDate": "2026-11-01",
+  "dueDate": "2026-12-16",
+  "purchaseOrder": "PO-SYN-0001",
+  "documentNumber": "SYN-2026-0001",
+  "items": [
+    {
+      "description": "Komponen kemasan sintetis",
+      "quantity": 5,
+      "unitPrice": 125000,
+      "amount": 625000
+    }
+  ]
+}

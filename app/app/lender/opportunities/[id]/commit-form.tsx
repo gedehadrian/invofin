@@ -23,13 +23,13 @@ export function CommitForm({
       <input type="hidden" name="requestId" value={requestId} />
       <input type="hidden" name="opportunityId" value={opportunityId} />
       <div className="space-y-1">
-        <Label>Nominal komitmen (sisa {remaining})</Label>
-        <Input name="amount" type="number" min={1} max={remaining} required />
+        <Label htmlFor="commitment-amount">Nominal komitmen simulasi</Label>
+        <Input id="commitment-amount" name="amount" type="number" min={1} max={remaining} required />
       </div>
       {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
       {state.success ? <p className="text-sm text-primary">{state.success}</p> : null}
       <Button type="submit" disabled={pending || remaining <= 0 || !requestId || !!state.success}>
-        Buat komitmen
+        Catat komitmen simulasi
       </Button>
     </form>
   );
