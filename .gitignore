@@ -46,6 +46,8 @@ supabase/.temp/
 /evaluation/private/
 /evaluation/reports/
 /evaluation/generated/
+__pycache__/
+*.pyc
 
 .vercel
 !.env.example

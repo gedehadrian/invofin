@@ -1,0 +1,67 @@
+{
+  "algorithm": "logistic-regression-l2",
+  "datasetKind": "synthetic",
+  "datasetSha256": "891b2dee453312e0425ece00b71293fe08fe8ba3eb547af1f8d392857f589a35",
+  "featureNames": [
+    "amountLog10",
+    "tenorDays",
+    "advancePercent"
+  ],
+  "intercept": -1.0199991924561262,
+  "means": [
+    6.5633598498151775,
+    81.75833333333334,
+    66.46944444444445
+  ],
+  "metrics": {
+    "test": {
+      "auc": 0.6350725532571782,
+      "brier": 0.22245698778286885,
+      "precision": 0.4666666666666667,
+      "recall": 0.17073170731707318,
+      "rows": 120
+    },
+    "train": {
+      "auc": 0.7257142857142858,
+      "brier": 0.18046915414353953,
+      "precision": 0.5227272727272727,
+      "recall": 0.21904761904761905,
+      "rows": 360
+    },
+    "validation": {
+      "auc": 0.69921875,
+      "brier": 0.15975811759878197,
+      "precision": 0.36363636363636365,
+      "recall": 0.16666666666666666,
+      "rows": 120
+    }
+  },
+  "modelVersion": "credit-synthetic-logistic-v1",
+  "notForProduction": true,
+  "ranges": [
+    {
+      "max": 7.992612819500182,
+      "min": 5.003453207636837
+    },
+    {
+      "max": 150.0,
+      "min": 15.0
+    },
+    {
+      "max": 90.0,
+      "min": 40.0
+    }
+  ],
+  "scales": [
+    0.8486194385335535,
+    39.091060892059026,
+    14.278155799146168
+  ],
+  "schemaVersion": 1,
+  "trainingCodeSha256": "bffea11e2e6ec3605e1e59a9f34339a26399f7dcc34c197be3e8d445aed7d32c",
+  "weights": [
+    0.25061598768891474,
+    0.7529812890371649,
+    0.21621035087542542
+  ]
+}

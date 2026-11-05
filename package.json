@@ -16,6 +16,7 @@
     "dev:local": "node scripts/run-local.mjs",
     "worker:local": "node scripts/run-local.mjs --worker",
     "eval:ocr": "tsx --env-file=.env.local scripts/evaluate-ocr.ts",
+    "eval:screening": "tsx scripts/evaluate-screening.ts",
     "worker": "node --env-file=.env.local scripts/run-document-worker.mjs",
     "seed": "tsx --env-file=.env.local scripts/seed.ts"
   },

@@ -8,7 +8,7 @@ Disepakati 6 November 2026: selesaikan prototipe tanpa uang nyata, memakai invoi
 | 2 | Generator invoice/PO/BAST sintetis bervariasi, augmentasi yang dapat diulang, ground truth, manifest dataset, split berdasarkan dokumen asal dan evaluator OCR | Selesai; 144 kasus, checksum/reproduksibilitas dan dua panggilan Azure diverifikasi |
 | 3 | OCR BAST, matching referensi/item tiga dokumen, fingerprint bisnis dan skenario duplikasi hasil ekspor/foto ulang | Selesai; Azure Layout BAST diuji, matching konservatif dan unique business identity teruji |
 | 4 | Rincian biaya/advance bersih, alasan risiko yang jelas, perapian UI dan UAT lima peran dengan fixture bervariasi | Selesai; kalkulasi/preset, build dan login/dashboard lima peran diperiksa; checklist UAT tersedia |
-| 5 | Baseline eksperimen fraud/kredit untuk demonstrasi, reason codes/explainability, versi dataset/model dan pipeline retraining; evaluasi sintetis ditandai dengan jelas | Belum |
+| 5 | Baseline eksperimen fraud/kredit untuk demonstrasi, reason codes/explainability, versi dataset/model dan pipeline retraining; evaluasi sintetis ditandai dengan jelas | Selesai; baseline 600 baris sintetis, lab non-production, lineage/time checks dan oracle screening dievaluasi; bukan model kredit tervalidasi |
 | 6 | Pemeriksaan keamanan, monitoring/retry/retensi, backup/restore, konfigurasi staging/production terpisah, runbook migrasi/promotion/rollback dan verifikasi deployment akhir | Belum |
 
 Setiap putaran mencakup implementasi, pemeriksaan yang relevan, commit dan laporan hasil. Push GitHub mengikuti instruksi pengguna. Enam putaran ini tidak mencakup payment gateway uang nyata, penyaluran/pembayaran dana, integrasi bank/ERP/e-Faktur nyata atau klaim model kredit sudah tervalidasi untuk nasabah.
