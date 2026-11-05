@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { getAppContext, homeForRole } from "@/lib/auth/session";
+import { requireUser, homeForRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -11,8 +10,7 @@ export default async function AuthenticatedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const ctx = await getAppContext();
-  if (!ctx) redirect("/sign-in");
+  const ctx = await requireUser();
 
   const supabase = await createClient();
   const { count } = await supabase

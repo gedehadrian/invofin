@@ -12,18 +12,26 @@ function dateString(message: string) {
     }, message);
 }
 
+const emailSchema = z.string().trim().toLowerCase().email("Email tidak valid.").max(254);
+export const newPasswordSchema = z.string().min(12, "Kata sandi minimal 12 karakter.").max(72, "Kata sandi maksimal 72 karakter.")
+  .refine(value => new TextEncoder().encode(value).length <= 72, "Kata sandi terlalu panjang. Gunakan maksimal 72 byte.");
 export const signUpSchema = z.object({
-  fullName: z.string().trim().min(3, "Nama lengkap minimal 3 karakter."),
-  email: z.string().email("Email tidak valid."),
-  password: z.string().min(8, "Kata sandi minimal 8 karakter."),
-  organizationName: z.string().trim().min(2, "Nama organisasi wajib diisi."),
-  organizationType: z.enum(["vendor", "buyer", "lender"]),
-  taxId: z.string().trim().optional(),
-  sector: z.string().trim().optional(),
+  fullName: z.string().trim().min(3, "Nama lengkap minimal 3 karakter.").max(100),
+  email: emailSchema,
+  password: newPasswordSchema,
 });
+export const onboardingSchema = z.object({
+  fullName: z.string().trim().min(3, "Nama lengkap minimal 3 karakter.").max(100),
+  organizationName: z.string().trim().min(2, "Nama organisasi wajib diisi.").max(160),
+  organizationType: z.enum(["vendor", "buyer", "lender"]),
+  sector: z.string().trim().max(80).optional(),
+});
+export const passwordResetRequestSchema = z.object({email: emailSchema});
+export const passwordUpdateSchema = z.object({password:newPasswordSchema,confirmPassword:z.string()})
+  .refine(value=>value.password===value.confirmPassword,{path:["confirmPassword"],message:"Konfirmasi kata sandi belum sama."});
 
 export const signInSchema = z.object({
-  email: z.string().email("Email tidak valid."),
+  email: emailSchema,
   password: z.string().min(1, "Kata sandi wajib diisi."),
 });
 

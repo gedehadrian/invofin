@@ -30,18 +30,23 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isApp = pathname.startsWith("/app");
   const isAuth = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up");
+  function sessionRedirect(target: URL) {
+    const response = NextResponse.redirect(target);
+    for (const cookie of supabaseResponse.cookies.getAll()) response.cookies.set(cookie);
+    return response;
+  }
 
   if (isApp && !user) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = "/sign-in";
     redirect.searchParams.set("next", pathname);
-    return NextResponse.redirect(redirect);
+    return sessionRedirect(redirect);
   }
 
   if (isAuth && user) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = "/app";
-    return NextResponse.redirect(redirect);
+    return sessionRedirect(redirect);
   }
 
   return supabaseResponse;

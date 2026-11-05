@@ -48,6 +48,22 @@ test("PostgreSQL migrations and cross-organization authorization", async t => {
       await assert.rejects(asUser(1,()=>db.query("insert into organization_members(user_id,organization_id,role) values($1,$2,'admin')",[uid(1),uid(15)])));
       await assert.rejects(asUser(1,()=>db.query("insert into organizations(name,type,status) values('Fake','platform','active')")));
     });
+    await t.test("trusted onboarding is replay-safe, pending-only and atomic on membership failure", async () => {
+      for (const n of [81,82]) await db.query("insert into auth.users(id,email) values($1,$2)",[uid(n),`onboarding${n}@invofin.invalid`]);
+      const args = [uid(81),"Nama Contoh","Organisasi Baru","vendor","Manufaktur"];
+      await assert.rejects(asUser(1,()=>db.query("select complete_onboarding($1,$2,$3,$4,$5)",args)));
+      const call = "select complete_onboarding($1,$2,$3,$4,$5) as id";
+      const org = (await db.query<{id:string}>(call,args)).rows[0].id;
+      assert.equal((await db.query<{id:string}>(call,[uid(81),"Ubah Nama","Jangan Buat Ulang","lender",null])).rows[0].id,org);
+      assert.equal((await db.query<{status:string}>("select status from organizations where id=$1",[org])).rows[0].status,"pending");
+      assert.equal((await db.query("select id from organization_members where user_id=$1",[uid(81)])).rows.length,1);
+      await assert.rejects(db.query(call,[uid(82),"Nama Contoh","Organisasi Platform","platform",null]));
+      const count = (await db.query<{n:number}>("select count(*)::int as n from organizations")).rows[0].n;
+      await db.exec(`create function public.reject_test_membership() returns trigger language plpgsql as $$ begin if new.user_id='${uid(82)}' then raise exception 'TEST_MEMBERSHIP_FAILURE'; end if; return new; end $$; create trigger reject_test_membership before insert on organization_members for each row execute function reject_test_membership();`);
+      await assert.rejects(db.query(call,[uid(82),"Nama Contoh","Tidak Boleh Yatim","buyer",null]));
+      assert.equal((await db.query<{n:number}>("select count(*)::int as n from organizations")).rows[0].n,count);
+      await db.exec("drop trigger reject_test_membership on organization_members; drop function reject_test_membership()");
+    });
     await t.test("anonymous clients cannot call role helpers and trigger functions are internal", async () => {
       const privileges = await db.query<{anon_helper:boolean;authenticated_helper:boolean;trigger_rpc:boolean}>("select has_function_privilege('anon','public.is_admin()','execute') as anon_helper,has_function_privilege('authenticated','public.is_admin()','execute') as authenticated_helper,has_function_privilege('authenticated','public.handle_new_user()','execute') as trigger_rpc");
       assert.deepEqual(privileges.rows[0], {anon_helper:false,authenticated_helper:true,trigger_rpc:false});
@@ -66,7 +82,8 @@ test("PostgreSQL migrations and cross-organization authorization", async t => {
       assert.equal((await asUser(7,()=>db.query<{allowed:boolean}>("select has_org_role($1,'vendor') as allowed",[uid(16)]))).rows[0].allowed,false);
       assert.equal((await asUser(5,()=>db.query<{allowed:boolean}>("select is_admin() as allowed"))).rows[0].allowed,false);
       assert.equal((await asUser(6,()=>db.query<{allowed:boolean}>("select is_admin() as allowed"))).rows[0].allowed,true);
-      assert.equal((await asUser(5,()=>db.query("select id from audit_logs"))).rows.length,0);
+      // Platform staff can read audit evidence; only admin may administer organizations.
+      assert.equal((await asUser(5,()=>db.query("select id from audit_logs where action='organization_onboarded'"))).rows.length,1);
     });
     await t.test("vendor cannot skip confirmation workflow and a foreign buyer cannot fabricate confirmation", async () => {
       await asUser(1,()=>db.query("update invoices set status='extraction_review' where id=$1",[uid(21)]));

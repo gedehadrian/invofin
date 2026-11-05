@@ -468,6 +468,7 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      complete_onboarding: { Args: { p_actor: string; p_full_name: string; p_organization_name: string; p_type: string; p_sector?: string | null }; Returns: string };
       configure_document_worker: { Args: { p_endpoint: string; p_secret: string }; Returns: boolean };
       confirm_invoice_extraction: { Args: { p_invoice_id: string; p_actor: string; p_vendor: string; p_number: string; p_issue: string; p_due: string; p_amount: number }; Returns: boolean };
       decide_buyer_invoice: { Args: { p_invoice: string; p_actor: string; p_buyer: string; p_decision: string; p_amount: number | null; p_due: string | null; p_note: string | null; p_assessment: Json | null }; Returns: boolean };

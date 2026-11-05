@@ -2,6 +2,8 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { accountDestination, homeForRole } from "./access";
+export { homeForRole } from "./access";
 import type {
   MemberRole,
   MembershipWithOrg,
@@ -17,24 +19,15 @@ export type AppContext = {
   current: MembershipWithOrg;
 };
 
-const ROLE_HOME: Record<MemberRole, string> = {
-  vendor: "/app/vendor",
-  buyer: "/app/buyer",
-  lender: "/app/lender",
-  risk_officer: "/app/risk",
-  admin: "/app/admin",
-};
-
-export function homeForRole(role: MemberRole) {
-  return ROLE_HOME[role];
-}
+export const getAuthenticatedUser = cache(async () => {
+  const supabase = await createClient();
+  return (await supabase.auth.getUser()).data.user;
+});
 
 export const getAppContext = cache(async (): Promise<AppContext | null> => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
   if (!user) return null;
+  const supabase = await createClient();
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -68,7 +61,8 @@ export const getAppContext = cache(async (): Promise<AppContext | null> => {
 
 export async function requireUser() {
   const ctx = await getAppContext();
-  if (!ctx) redirect("/sign-in");
+  if (!ctx) redirect(accountDestination(Boolean(await getAuthenticatedUser())));
+  if (ctx.current.organizations.status !== "active") redirect("/account-status");
   return ctx;
 }
 

@@ -11,6 +11,7 @@
     "test": "tsx --test lib/risk/*.test.ts lib/auth/*.test.ts lib/documents/*.test.ts lib/*.test.ts modules/dashboard/*.test.ts",
     "test:db": "tsx --test tests/database.test.ts",
     "test:local": "node --env-file=.env.test.local node_modules/tsx/dist/cli.mjs --test tests/local-stack.test.ts",
+    "test:auth:local": "node --env-file=.env.test.local node_modules/tsx/dist/cli.mjs --test tests/auth-local.test.ts",
     "setup:local": "node scripts/setup-local.mjs",
     "dev:local": "node scripts/run-local.mjs",
     "worker:local": "node scripts/run-local.mjs --worker",

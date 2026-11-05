@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
-import { getAppContext, homeForRole } from "@/lib/auth/session";
+import { requireUser, homeForRole } from "@/lib/auth/session";
 
 export default async function AppIndexPage() {
-  const ctx = await getAppContext();
-  if (!ctx) redirect("/sign-in");
+  const ctx = await requireUser();
   redirect(homeForRole(ctx.current.role));
 }

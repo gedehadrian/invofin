@@ -8,4 +8,6 @@ test("auth callbacks only redirect to workspace on the same origin", () => {
     assert.equal(safeWorkspaceRedirect(unsafe, origin).href, `${origin}/app`);
   }
   assert.equal(safeWorkspaceRedirect("/app/vendor/invoices?status=draft", origin).href, `${origin}/app/vendor/invoices?status=draft`);
+  for (const safe of ["/reset-password", "/onboarding", "/account-status"]) assert.equal(safeWorkspaceRedirect(safe, origin).pathname, safe);
+  for (const unsafe of ["/reset-password/anything", "/forgot-password", "//evil.test/reset-password", "/account-status/../../sign-in"]) assert.equal(safeWorkspaceRedirect(unsafe, origin).pathname, "/app");
 });
