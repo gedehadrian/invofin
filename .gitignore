@@ -45,6 +45,7 @@ next-env.d.ts
 supabase/.temp/
 /evaluation/private/
 /evaluation/reports/
+/evaluation/generated/
 
 .vercel
 !.env.example

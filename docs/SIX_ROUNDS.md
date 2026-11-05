@@ -5,7 +5,7 @@ Disepakati 6 November 2026: selesaikan prototipe tanpa uang nyata, memakai invoi
 | Putaran | Cakupan dan kriteria selesai | Status |
 | --- | --- | --- |
 | 1 | Akun dan onboarding dua tahap yang dapat dilanjutkan; organisasi pending/active/suspended; reset password lengkap; RPC atomik dan tes auth | Selesai 6 November 2026; implementasi `dcd55ce`, cloud terverifikasi |
-| 2 | Generator invoice/PO/BAST sintetis bervariasi, augmentasi yang dapat diulang, ground truth, manifest dataset, split berdasarkan dokumen asal dan evaluator OCR | Berikutnya |
+| 2 | Generator invoice/PO/BAST sintetis bervariasi, augmentasi yang dapat diulang, ground truth, manifest dataset, split berdasarkan dokumen asal dan evaluator OCR | Selesai; 144 kasus, checksum/reproduksibilitas dan dua panggilan Azure diverifikasi |
 | 3 | OCR BAST, matching referensi/item tiga dokumen, fingerprint bisnis dan skenario duplikasi hasil ekspor/foto ulang | Belum |
 | 4 | Rincian biaya/advance bersih, alasan risiko yang jelas, perapian UI dan UAT lima peran dengan fixture bervariasi | Belum |
 | 5 | Baseline eksperimen fraud/kredit untuk demonstrasi, reason codes/explainability, versi dataset/model dan pipeline retraining; evaluasi sintetis ditandai dengan jelas | Belum |

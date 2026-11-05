@@ -7,6 +7,7 @@ Prototipe invoice financing dengan lima peran: vendor, buyer, lender, Risk Offic
 - `/app` — autentikasi, data tersimpan, dokumen privat dan workflow organisasi.
 - [Panduan prototipe online dan pekerjaan berikutnya](docs/PROTOTYPE.md)
 - [Kesepakatan enam putaran, augmentasi dan retraining](docs/SIX_ROUNDS.md)
+- [Mereproduksi dataset augmentasi berlabel](evaluation/DATASET.md)
 - [Arsitektur](docs/ARCHITECTURE.md) · [Design system](docs/DESIGN_SYSTEM.md) · [Verifikasi](docs/VERIFICATION.md)
 
 Arsitektur berupa modular monolith dengan antrean dokumen durable. Worker dapat dipisahkan saat beban membutuhkan layanan sendiri. Komitmen pendanaan adalah simulasi pencatatan; belum ada pencairan atau pembayaran nyata.

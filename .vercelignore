@@ -6,5 +6,6 @@ tests
 tools
 evaluation/private
 evaluation/reports
+evaluation/generated
 supabase/.temp
 tmp
