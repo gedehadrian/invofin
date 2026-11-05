@@ -26,6 +26,8 @@ Invoice PDF yang sama tidak dapat diajukan kembali. Untuk demonstrasi berulang g
 
 ## Pekerjaan berikutnya
 
+[Inventaris fitur lengkap, pencocokan proposal, dan prioritas P0-P3](FEATURE_MATRIX.md) diperbarui 6 November 2026. Aktivasi/penangguhan organisasi dasar sudah ada; yang perlu diselesaikan adalah keseluruhan onboarding dan pemulihan akses. OCR BAST, fingerprint bisnis, SHAP/model kredit, serta integrasi pembayaran/ERP masih menjadi celah terhadap proposal.
+
 | Prioritas | Pekerjaan | Kriteria selesai |
 | --- | --- | --- |
 | Berikutnya | Skenario uji OCR lebih beragam | Dataset berlabel: scan buram, format Indonesia, pajak, tanggal ambigu; ukur akurasi per field dan jumlah koreksi |
