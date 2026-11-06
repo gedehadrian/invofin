@@ -1,5 +1,13 @@
 # Bukti verifikasi prototipe
 
+## Tindak lanjut SMTP, 6 November 2026
+
+Pemilik melaporkan setup App Password/SMTP. Satu permintaan recovery cloud ke inbox yang diizinkan telah dicoba; UI menampilkan respons generik, tetapi penerima belum mendapat email dan Auth belum mencatat `recovery_sent_at`/event recovery. SMTP belum ditandai berhasil. Rincian SMTP tidak tersedia dalam snapshot config CLI yang diperiksa; konektor log terpisah tidak memiliki izin project ini.
+
+Ditemukan bug Server Action yang mengabaikan error pengiriman selain HTTP 429. Penanganannya diperbaiki: kegagalan provider ditampilkan sebagai layanan belum tersedia, unknown-user tetap mendapat respons generik yang sama, dan log server hanya memuat status/kode yang disaring. Tes regresi memeriksa ketiga kondisi tersebut. Kredensial serta alamat penerima/pengirim tidak ditambahkan ke repository. Panduan uji ada di `SMTP.md`.
+
+Perbaikan tersebut lulus 31 tes unit, TypeScript, lint terarah dan production build. Perubahan dependency yang sudah ada di working tree pengguna dipertahankan di luar commit ini.
+
 ## Pengujian yang dijalankan
 
 - Unit: normalisasi nominal/tanggal Indonesia, confidence per field, label evaluasi OCR, rules engine, Isolation Forest, callback redirect, unggahan, ringkasan dashboard dan navigasi.

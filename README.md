@@ -10,6 +10,7 @@ Prototipe invoice financing dengan lima peran: vendor, buyer, lender, Risk Offic
 - [Mereproduksi dataset augmentasi berlabel](evaluation/DATASET.md)
 - [Model eksperimen dan retraining](docs/MODELS.md) · [UAT lima peran](docs/UAT.md)
 - [Operasional, backup dan promotion](docs/OPERATIONS.md) · [Daftar fitur dan batasnya](docs/FEATURE_MATRIX.md)
+- [SMTP Gmail untuk uji email Auth](docs/SMTP.md)
 - [Arsitektur](docs/ARCHITECTURE.md) · [Design system](docs/DESIGN_SYSTEM.md) · [Verifikasi](docs/VERIFICATION.md)
 
 Arsitektur berupa modular monolith dengan antrean dokumen durable. Worker dapat dipisahkan saat beban membutuhkan layanan sendiri. Komitmen pendanaan adalah simulasi pencatatan; belum ada pencairan atau pembayaran nyata.

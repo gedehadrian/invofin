@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/auth/session";
 import { siteOrigin } from "@/lib/auth/site-url";
+import { recoveryResponse } from "@/lib/auth/recovery";
 import { signInSchema, signUpSchema, onboardingSchema, passwordResetRequestSchema, passwordUpdateSchema } from "@/lib/validations";
 
 export type ActionState = { error?: string; success?: string };
@@ -55,10 +56,13 @@ export async function resetPasswordAction(_prev: ActionState, form: FormData): P
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   try {
     const { error } = await (await createClient()).auth.resetPasswordForEmail(parsed.data.email, { redirectTo: `${siteOrigin()}/auth/callback?next=/reset-password` });
-    if (error?.status === 429) return { error: "Terlalu banyak permintaan. Tunggu sebelum meminta tautan lagi." };
-    // Same response for an unknown address; do not expose whether an account exists.
+    if (error && error.status && error.status >= 500) {
+      // Log only an allowlisted code/status, never email, tokens or provider message.
+      const code = /^[a-z_]{1,64}$/.test(error.code ?? "") ? error.code : "unknown";
+      console.error("auth_recovery_delivery_failed", { status: error.status, code });
+    }
+    return recoveryResponse(error);
   } catch { return { error: "Permintaan belum terkirim. Periksa koneksi lalu coba kembali." }; }
-  return { success: "Jika email terdaftar, tautan pemulihan akan dikirim. Buka tautan terbaru di browser ini dan periksa folder spam." };
 }
 
 export async function updatePasswordAction(_prev: ActionState, form: FormData): Promise<ActionState> {
