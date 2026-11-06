@@ -8,6 +8,8 @@ Ditemukan bug Server Action yang mengabaikan error pengiriman selain HTTP 429. P
 
 Perbaikan tersebut lulus 31 tes unit, TypeScript, lint terarah dan production build. Perubahan dependency yang sudah ada di working tree pengguna dipertahankan di luar commit ini.
 
+Implementasi `2734b93` sudah di-push; [CI 42137026827](https://github.com/gedehadrian/invofin/actions/runs/42137026827) lulus. Deployment `dpl_68Zx5xWrsjAhkSUzPcdPsWAghFxE` Ready, dibuat dari snapshot commit bersih. Setelah pemilik mengonfirmasi project, konfigurasi SMTP dan akun pembuat App Password cocok, satu retry cloud diterima tanpa error dan `recovery_sent_at` menjadi terisi. Ini membuktikan permintaan pengiriman diproses Auth; penerimaan inbox serta penyelesaian reset oleh pemilik belum dikonfirmasi. Tidak ada password akun nyata yang diubah oleh agent.
+
 ## Pengujian yang dijalankan
 
 - Unit: normalisasi nominal/tanggal Indonesia, confidence per field, label evaluasi OCR, rules engine, Isolation Forest, callback redirect, unggahan, ringkasan dashboard dan navigasi.
