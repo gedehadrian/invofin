@@ -28,3 +28,11 @@ Simpan pengaturan. Untuk pengirim alias, konfigurasikan dan verifikasi Send mail
 Jika belum ada email: pastikan project/ref benar, Custom SMTP aktif dan Save berhasil, username serta pengirim cocok dengan Gmail pemilik App Password, lalu periksa error Auth. Pengaturan SMTP yang tersimpan belum membuktikan credential benar atau deliverability berhasil. Jangan mematikan konfirmasi email untuk menutupi kegagalan pengiriman.
 
 Jangan mengandalkan Gmail sebagai layanan email produksi berskala besar. Sebelum pilot, tentukan kuota, pengirim terverifikasi dan pemantauan pengiriman sesuai [panduan SMTP Supabase](https://supabase.com/docs/guides/auth/auth-smtp).
+
+## Template reset password InvoFin
+
+Template kanonis: `supabase/templates/recovery.html`. Desain memakai warna `#2563eb`, wordmark teks InvoFin, kartu putih, tombol utama, catatan keamanan dan tautan cadangan. Layout tabel dan CSS inline menjaga kompatibilitas email; tidak memuat JavaScript, font atau gambar eksternal. Preview desktop dan mobile 390 px diperiksa tanpa overflow horizontal, memakai tautan contoh tanpa token asli.
+
+Untuk hosted Supabase, buka [Reset Password email template](https://supabase.com/dashboard/project/skwwgjjgeativyevkkpl/auth/templates), isi Subject **Atur ulang kata sandi InvoFin Anda**, lalu salin seluruh isi HTML kanonis ke Body dan simpan. Diff CLI 3.0.0 yang diperiksa hanya menampilkan subject; jangan menganggap body HTML sudah terpasang setelah `config push`. Dokumentasi resmi menyediakan penerapan lewat [Dashboard atau Management API](https://supabase.com/docs/guides/auth/auth-email-templates).
+
+Tombol dan tautan cadangan tetap memakai `{{ .ConfirmationURL }}`. Footer memakai `{{ .SiteURL }}`. Jangan menggantinya dengan URL dari email nyata atau token yang pernah dipakai. Template lokal sudah dirujuk oleh `supabase/config.toml`; perubahan lokal berlaku setelah stack dimuat ulang. Pengaturan SMTP dan App Password tidak perlu diubah untuk memasang desain.

@@ -8,7 +8,13 @@ Ditemukan bug Server Action yang mengabaikan error pengiriman selain HTTP 429. P
 
 Perbaikan tersebut lulus 31 tes unit, TypeScript, lint terarah dan production build. Perubahan dependency yang sudah ada di working tree pengguna dipertahankan di luar commit ini.
 
-Implementasi `2734b93` sudah di-push; [CI 42137026827](https://github.com/gedehadrian/invofin/actions/runs/42137026827) lulus. Deployment `dpl_68Zx5xWrsjAhkSUzPcdPsWAghFxE` Ready, dibuat dari snapshot commit bersih. Setelah pemilik mengonfirmasi project, konfigurasi SMTP dan akun pembuat App Password cocok, satu retry cloud diterima tanpa error dan `recovery_sent_at` menjadi terisi. Ini membuktikan permintaan pengiriman diproses Auth; penerimaan inbox serta penyelesaian reset oleh pemilik belum dikonfirmasi. Tidak ada password akun nyata yang diubah oleh agent.
+Implementasi `2734b93` sudah di-push; [CI 42137026827](https://github.com/gedehadrian/invofin/actions/runs/42137026827) lulus. Deployment `dpl_68Zx5xWrsjAhkSUzPcdPsWAghFxE` Ready, dibuat dari snapshot commit bersih. Setelah pemilik mengonfirmasi project, konfigurasi SMTP dan akun pembuat App Password cocok, satu retry cloud diterima tanpa error dan `recovery_sent_at` menjadi terisi. Pemilik kemudian mengonfirmasi email sudah diterima di inbox pada 6 November 2026. Pengiriman/penerimaan SMTP terverifikasi; penyelesaian reset oleh pemilik belum diuji ulang di cloud. Tidak ada password akun nyata yang diubah oleh agent.
+
+## Desain email reset, 6 November 2026
+
+Template `supabase/templates/recovery.html` ditambahkan dengan desain light blue, CTA dan fallback. Dua href recovery tetap memakai placeholder Supabase yang sama, tanpa token nyata atau perubahan callback. Validasi HTML tidak menemukan script/iframe/form/event handler. Preview desktop dan mobile 390 px diperiksa; lebar dokumen tidak melebihi viewport. Ini merupakan preview browser, belum pengujian lintas Gmail/Outlook atas template baru.
+
+Penerapan body hosted masih menunggu akses Dashboard: CLI config diff mengenali subject, tetapi tidak membandingkan body HTML; sesi Dashboard pada browser agent belum login. Tidak ada klaim body template baru sudah aktif sampai diverifikasi di Dashboard.
 
 ## Pengujian yang dijalankan
 
