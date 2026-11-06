@@ -14,7 +14,7 @@ Implementasi `2734b93` sudah di-push; [CI 42137026827](https://github.com/gedeha
 
 Template `supabase/templates/recovery.html` ditambahkan dengan desain light blue, CTA dan fallback. Dua href recovery tetap memakai placeholder Supabase yang sama, tanpa token nyata atau perubahan callback. Validasi HTML tidak menemukan script/iframe/form/event handler. Preview desktop dan mobile 390 px diperiksa; lebar dokumen tidak melebihi viewport. Ini merupakan preview browser, belum pengujian lintas Gmail/Outlook atas template baru.
 
-Penerapan body hosted masih menunggu akses Dashboard: CLI config diff mengenali subject, tetapi tidak membandingkan body HTML; sesi Dashboard pada browser agent belum login. Tidak ada klaim body template baru sudah aktif sampai diverifikasi di Dashboard.
+Template recovery hosted sudah disimpan melalui Dashboard InvoFin App pada 6 November 2026. Subject menjadi **Atur ulang kata sandi InvoFin Anda**. Setelah reload, isi editor disalin kembali melalui UI dan cocok dengan HTML kanonis setelah normalisasi CRLF; tombol Save changes nonaktif karena tidak ada perubahan tertunda. CLI config diff juga tidak menemukan perubahan properti yang dideklarasikan. Salinan template lama disimpan sebelum penggantian. Screenshot preview Supabase memperlihatkan CTA dari template yang sudah tersimpan.
 
 ## Pengujian yang dijalankan
 

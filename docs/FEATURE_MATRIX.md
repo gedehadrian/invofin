@@ -1,6 +1,6 @@
 # Inventaris fitur dan kecocokan proposal
 
-Ditinjau 6 November 2026 setelah implementasi enam putaran prototipe. Acuan: proposal InvoFin AI for Good bagian 3-7 dan Value Proposition Canvas. Bukti serta batas pengujian ada di `VERIFICATION.md`; ini belum audit keamanan menyeluruh. Konfigurasi layanan produksi/SMTP masih menunggu pemilik.
+Ditinjau 6 November 2026 setelah implementasi enam putaran prototipe. Acuan: proposal InvoFin AI for Good bagian 3-7 dan Value Proposition Canvas. Bukti serta batas pengujian ada di `VERIFICATION.md`; ini belum audit keamanan menyeluruh. SMTP Gmail staging sudah diterima di inbox dan template recovery bermerek aktif; konfigurasi layanan produksi terpisah masih menunggu pemilik.
 
 Status **Ada** berarti tersedia dalam prototipe. **Parsial** berarti hanya sebagian alur/kebutuhan terpenuhi. **Belum** berarti belum ada implementasi operasional. Seluruh pendanaan masih simulasi.
 
@@ -9,7 +9,7 @@ Status **Ada** berarti tersedia dalam prototipe. **Parsial** berarti hanya sebag
 | Area | Fitur tersedia | Batas yang perlu diketahui |
 | --- | --- | --- |
 | Publik | Landing page, tentang produk, panduan alur, demo lima peran tanpa login | Demo menggunakan state di memori, terpisah dari data aplikasi |
-| Autentikasi | Daftar, login, logout, callback email/PKCE/token hash, reset password sampai penyimpanan password baru, profil dan membership | Pengiriman email sandbox diuji; SMTP/deliverability cloud per lingkungan belum diuji ke kotak masuk nyata |
+| Autentikasi | Daftar, login, logout, callback email/PKCE/token hash, reset password, profil/membership dan email recovery bermerek | SMTP Gmail staging diterima di inbox yang diizinkan; belum uji rendering template baru lintas email client atau SMTP produksi terpisah |
 | Onboarding | Akun diverifikasi lalu organisasi pending dibuat lewat RPC atomik/idempotent; pendaftaran terputus dapat dilanjutkan; halaman pending/suspended dan aktivasi admin | Belum e-KYC, assisted onboarding atau invitation tim |
 | Lima peran | Vendor, anchor buyer, lender, Risk Officer, admin; menu dan halaman sesuai peran | Daftar pengguna admin masih baca saja; belum editor membership/undangan tim |
 | Dashboard | KPI, grafik bulanan, filter tahun, daftar invoice, pencarian, filter status, pagination tampilan, ekspor CSV | Ringkasan dibatasi subset data, bukan agregasi keuangan/ledger menyeluruh |
@@ -44,7 +44,7 @@ Status **Ada** berarti tersedia dalam prototipe. **Parsial** berarti hanya sebag
 | Evaluasi teknis | Ada | 30 unit, 14 PostgreSQL, 7 workflow, 6 Auth, 3 operasi lokal dan 2 Python; build/lint/audit; lihat VERIFICATION.md |
 | Operasional | Ada dengan batas | Monitoring 100 job, notifikasi gagal, retry, quota upload atomik, retensi quarantine, latihan restore logical lokal dan runbook |
 | Dataset/retraining | Ada | 144 dokumen sintetis berlabel, split tanpa turunan bocor; pipeline model berversi dan input real privat/consented tanpa autopromotion |
-| Promotion | Parsial | Guard target production terpisah, preflight, seed guard dan payment stub; provisioning/SMTP/restore cloud belum dilaksanakan |
+| Promotion | Parsial | Guard target production terpisah, preflight, seed guard dan payment stub; provisioning/SMTP produksi/restore cloud belum dilaksanakan |
 | Arsitektur | Parsial terhadap istilah proposal | Modular monolith dengan batas modul dan worker; belum microservices yang dideploy independen |
 
 ## Kecocokan dengan proposal dan canvas
@@ -76,10 +76,10 @@ Target akurasi, fraud mendekati nol, straight-through processing 80% dan pencair
 
 | Tahap | Pekerjaan | Hasil yang dapat diperiksa |
 | --- | --- | --- |
-| Selesai putaran 1 | Onboarding pending/aktif/suspended, pendaftaran yang dapat dilanjutkan, reset password lengkap | UI lokal dan smoke cloud lulus; deliverability email cloud ditangani pada putaran 6 |
+| Selesai putaran 1 | Onboarding pending/aktif/suspended, pendaftaran yang dapat dilanjutkan, reset password lengkap | UI lokal dan smoke cloud lulus; pengiriman recovery Gmail staging kemudian dikonfirmasi masuk inbox |
 | Selesai putaran 2-5 | Augmentasi, BAST/matching/identitas bisnis, biaya/preset/UAT dan baseline sintetis berversi | Lihat DATASET.md, DOCUMENT_PROCESSING.md, UAT.md dan MODELS.md |
 | Tersedia putaran 6 | Monitoring/retry, retensi quarantine, quota atomik, dependency remediation, CI, restore lokal dan promotion guard/runbook | Konfigurasi staging online; hasil validasi di VERIFICATION.md |
-| Prasyarat pilot | Project produksi terpisah, SMTP/domain/mailbox, restore cloud/byte objek dan paging eksternal | Konfigurasi nyata dan uji penerimaan operator; daftar rinci OPERATIONS.md |
+| Prasyarat pilot | Project produksi terpisah, SMTP/domain/mailbox produksi, restore cloud/byte objek dan paging eksternal | SMTP staging tersedia; konfigurasi produksi dan uji penerimaan operator tetap diperlukan; lihat OPERATIONS.md |
 | P1 - lanjutan keamanan | Audit menyeluruh, abuse/load test, scan malware dan kebijakan retensi canonical | Pemeriksaan yang tersedia belum menggantikan audit/pilot |
 | P2 - pilot | Histori pembayaran representatif berizin, validasi model terhadap waktu, kalibrasi, bias/drift dan pilot buyer | Bukti model pada data di luar pelatihan; persetujuan manusia tetap eksplisit |
 | P2 - transaksi nyata | Provider pembayaran sandbox lalu alur ledger, webhook, pencairan, repayment, collection dan rekonsiliasi | Saldo dan transaksi dapat direkonsiliasi; kesiapan legal/operasi ditangani sebelum go-live uang nyata |

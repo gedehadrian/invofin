@@ -40,4 +40,4 @@ Jika ada kerusakan data, jangan sekadar mengembalikan kode: pulihkan backup ke t
 
 ## Hal yang memerlukan konfigurasi pemilik
 
-Belum ada project produksi terpisah, SMTP/domain terverifikasi, pengujian deliverability cloud, restore cloud/objek, paging eksternal atau kebijakan retensi data nyata. Aplikasi staging tetap dapat dipakai tim dengan data fiktif. Hal-hal ini tidak boleh ditandai selesai hanya karena kode/runbook tersedia.
+SMTP Gmail staging sudah dikonfirmasi masuk inbox dan template recovery InvoFin sudah aktif. Belum ada project produksi terpisah, SMTP/domain produksi terverifikasi, restore cloud/objek, paging eksternal atau kebijakan retensi data nyata. Aplikasi staging tetap dapat dipakai tim dengan data fiktif. Prasyarat produksi tersebut tidak boleh ditandai selesai hanya karena kode/runbook tersedia.
