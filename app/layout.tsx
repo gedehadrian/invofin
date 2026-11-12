@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   title: "InvoFin — Invoice menjadi modal kerja",
   description:
     "Platform perantara invoice financing untuk vendor UMKM, anchor buyer, dan lender. Bukan pemberi pinjaman dari neraca sendiri.",
+  icons: {
+    icon: "/logo.png",
+  },
 };
 
 export default function RootLayout({
