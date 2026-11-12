@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DocumentLinks } from "@/components/document-links";
 import { InvoiceTimeline } from "@/components/invoice-timeline";
 import { RiskBandBadge, StatusBadge } from "@/components/status-badge";
-import { formatIdr } from "@/lib/format";
+import { formatDate, formatIdr } from "@/lib/format";
 import { RiskDecisionForm } from "./decision-form";
 import type { RiskBand } from "@/lib/database.types";
 
@@ -34,50 +34,73 @@ export default async function RiskInvoiceDetail({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">{invoice.invoice_number}</h1>
-          <p className="text-sm text-muted-foreground">{formatIdr(Number(invoice.amount))}</p>
+          <p className="text-sm text-muted-foreground">
+            Nominal {formatIdr(Number(invoice.amount))} · Jatuh tempo {formatDate(invoice.due_date)}
+          </p>
         </div>
         <StatusBadge status={invoice.status} />
       </div>
+
       <InvoiceTimeline status={invoice.status} history={invoice.status_history ?? []} />
-      <DocumentLinks documents={invoice.invoice_documents ?? []} />
-      {risk ? (
-        <div className="surface p-4 text-sm">
-          <RiskBandBadge band={risk.risk_band as RiskBand} />
-          <p className="mt-2">Skor aturan awal {risk.score}/100</p>
-          <p className="mt-2 text-muted-foreground">Alasan penilaian</p>
-          <ul className="list-disc pl-5 text-muted-foreground">
-            {(Array.isArray(risk.reason_codes) ? risk.reason_codes : []).map((r) => {
-              const item = r as { code: string; message: string };
-              return (
-                <li key={item.code}>
-                  {item.code}: {item.message}
-                </li>
-              );
-            })}
-          </ul>
-          <p className="mt-3 text-muted-foreground">Indikasi yang perlu ditinjau</p>
-          {anomalies.length ? (
-            <ul className="list-disc pl-5 text-muted-foreground">
-              {anomalies.map((item) => (
-                <li key={item.code}>
-                  {item.code}: {item.message}
-                </li>
-              ))}
-            </ul>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="space-y-6">
+          {risk ? (
+            <div className="surface space-y-4 p-5 text-sm">
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold">Hasil Cek Mesin Risiko</h2>
+                <RiskBandBadge band={risk.risk_band as RiskBand} />
+              </div>
+              <div className="rounded-xl bg-blue-50/70 p-3.5">
+                <p className="text-xs text-muted-foreground">Skor Kelayakan Awal</p>
+                <p className="mt-0.5 text-2xl font-semibold text-primary">{risk.score} / 100</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-foreground">Catatan Pemeriksaan:</p>
+                <ul className="mt-1.5 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+                  {(Array.isArray(risk.reason_codes) ? risk.reason_codes : []).map((r) => {
+                    const item = r as { code: string; message: string };
+                    return <li key={item.code}>{item.message}</li>;
+                  })}
+                </ul>
+              </div>
+              {anomalies.length > 0 && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                  <p className="font-semibold">Perlu Perhatian Ekstra:</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-4">
+                    {anomalies.map((item) => (
+                      <li key={item.code}>{item.message}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           ) : (
-            <p className="pl-1 text-muted-foreground">Tidak ada indikasi pada aturan yang dijalankan; tetap periksa bukti dokumen.</p>
+            <div className="surface p-5 text-sm text-muted-foreground">
+              Skor risiko otomatis muncul setelah Buyer mengonfirmasi tagihan ini.
+            </div>
+          )}
+
+          <div className="surface p-5">
+            <h2 className="font-semibold">3 Dokumen Bukti</h2>
+            <DocumentLinks documents={invoice.invoice_documents ?? []} />
+          </div>
+        </div>
+
+        <div>
+          {invoice.status === "risk_review" ? (
+            <RiskDecisionForm invoiceId={invoice.id} />
+          ) : (
+            <div className="surface p-5 text-sm text-muted-foreground">
+              Keputusan untuk tagihan ini sudah tercatat.
+            </div>
           )}
         </div>
-      ) : (
-        <div className="surface p-4 text-sm text-muted-foreground">
-          Hasil asesmen risiko belum tersedia untuk invoice ini. Asesmen dibuat otomatis
-          saat buyer mengonfirmasi invoice.
-        </div>
-      )}
-      {invoice.status === "risk_review" ? <RiskDecisionForm invoiceId={invoice.id} /> : null}
+      </div>
     </div>
   );
 }
+

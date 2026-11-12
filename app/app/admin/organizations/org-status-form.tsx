@@ -20,16 +20,17 @@ export function OrgStatusForm({
       <select
         name="status"
         defaultValue={status}
-        className="h-8 rounded-lg border border-input bg-transparent px-2 text-xs"
+        className="h-8 rounded-lg border border-input bg-white px-2.5 text-xs font-medium"
       >
-        <option value="pending">pending</option>
-        <option value="active">active</option>
-        <option value="suspended">suspended</option>
+        <option value="pending">⏳ Menunggu (Pending)</option>
+        <option value="active">✅ Aktif (Disetujui)</option>
+        <option value="suspended">⛔ Ditangguhkan (Suspend)</option>
       </select>
       <Button type="submit" size="sm" disabled={pending}>
-        Simpan
+        {pending ? "Menyimpan..." : "Terapkan"}
       </Button>
       {state.error ? <span className="text-xs text-destructive">{state.error}</span> : null}
     </form>
   );
 }
+

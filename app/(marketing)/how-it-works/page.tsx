@@ -1,32 +1,26 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const STEPS = [
-  ["Unggah", "Vendor mengirim Invoice, PO, dan BAST ke storage privat."],
-  ["OCR", "Azure Document Intelligence prebuilt-invoice mengekstrak data."],
-  ["Duplikasi", "SHA-256 + unique constraint menolak file invoice identik."],
-  ["Konsistensi", "Rules engine membandingkan formulir, OCR, PO, dan BAST."],
-  ["Buyer", "Anchor buyer mengonfirmasi atau menolak keabsahan."],
-  ["Anomali", "Isolation Forest jalan setelah histori vendor mencukupi."],
-  ["Risk Officer", "Keputusan akhir: setujui ke marketplace atau tolak."],
-  ["Pendanaan", "Lender berkomitmen hingga target terisi. Bukan pencairan sungguhan."],
+  ["1. Vendor Ajukan & Upload", "Vendor mengisi form tagihan dan mengunggah 3 bukti sakti: Invoice, PO, dan BAST."],
+  ["2. Mesin Baca Dokumen (OCR)", "Sistem mengekstrak angka dan tanggal dari dokumen secara otomatis, plus mengecek apakah file pernah dipakai sebelumnya."],
+  ["3. Vendor Cek Ulang", "Karena mesin kadang bisa salah baca tulisan miring, Vendor memastikan data hasil bacaan sudah pas sebelum dikirim ke Buyer."],
+  ["4. Buyer Kasih Konfirmasi", "Anchor Buyer memverifikasi bahwa barang/jasa memang sudah diterima dan nominal tagihannya tidak dilebih-lebihkan."],
+  ["5. Risk Officer Mengecek", "Sistem menghitung skor risiko (cocoklogi 3 dokumen & riwayat), lalu Risk Officer memberi lampu hijau."],
+  ["6. Lender Patungan Mendanai", "Invoice tayang di Marketplace! Lender bisa memilih tagihan dan berkomitmen mendanai hingga target terpenuhi."],
 ];
 
 export default function HowItWorksPage() {
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 md:px-6 md:py-12">
-      <h1 className="text-2xl font-semibold md:text-3xl">Cara kerja InvoFin</h1>
+    <main className="mx-auto max-w-5xl px-4 py-12 md:px-6">
+      <h1 className="text-2xl font-semibold md:text-3xl">Gimana Alur Kerja InvoFin?</h1>
       <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-        Risk assessment awal, bukan keputusan kredit otomatis final. Setiap risk band punya reason
-        codes, dan kasus berisiko tetap ke manusia.
+        Nggak perlu baca buku manual setebal bantal. Intinya cuma satu: memastikan tagihan itu asli, diakui pembelinya, lalu siap didanai.
       </p>
-      <div className="mt-8 grid gap-3 sm:grid-cols-2">
-        {STEPS.map(([title, body], i) => (
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {STEPS.map(([title, body]) => (
           <Card key={title} size="sm">
             <CardHeader>
-              <CardTitle className="text-sm">
-                <span className="mr-2 text-primary">{String(i + 1).padStart(2, "0")}</span>
-                {title}
-              </CardTitle>
+              <CardTitle className="text-sm font-semibold text-primary">{title}</CardTitle>
             </CardHeader>
             <CardContent className="text-xs leading-relaxed text-muted-foreground">{body}</CardContent>
           </Card>
@@ -35,3 +29,4 @@ export default function HowItWorksPage() {
     </main>
   );
 }
+

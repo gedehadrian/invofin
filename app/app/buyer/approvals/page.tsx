@@ -1,14 +1,15 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/kpi-card";
 import { StatusBadge } from "@/components/status-badge";
-import { formatIdr } from "@/lib/format";
+import { Button } from "@/components/ui/button";
+import { formatDate, formatIdr } from "@/lib/format";
 
 export default async function BuyerApprovalsPage() {
   const ctx = await requireRole(["buyer"]);
   const supabase = await createClient();
-  // Draf dan tahap koreksi ekstraksi masih milik vendor, belum diajukan ke buyer.
   const { data } = await supabase
     .from("invoices")
     .select("*")
@@ -17,22 +18,47 @@ export default async function BuyerApprovalsPage() {
     .order("created_at", { ascending: false });
 
   if (!data?.length) {
-    return <EmptyState title="Tidak ada invoice" description="Belum ada pengajuan ke organisasi Anda." />;
+    return (
+      <EmptyState
+        title="Meja kerja bersih! ✨"
+        description="Belum ada tagihan dari vendor yang menunggu konfirmasimu."
+      />
+    );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Konfirmasi invoice</h1>
-      <ul className="space-y-2">
+      <div>
+        <h1 className="text-2xl font-semibold">Tagihan Butuh Konfirmasi</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Cek apakah barang/jasanya memang sudah kamu terima dan angkanya sesuai.
+        </p>
+      </div>
+      <div className="space-y-3">
         {data.map((invoice) => (
-          <li key={invoice.id} className="flex items-center justify-between surface px-4 py-3">
-            <Link href={`/app/buyer/approvals/${invoice.id}`} className="text-primary">
-              {invoice.invoice_number} · {formatIdr(Number(invoice.amount))}
-            </Link>
-            <StatusBadge status={invoice.status} />
-          </li>
+          <div
+            key={invoice.id}
+            className="surface flex flex-wrap items-center justify-between gap-4 px-5 py-4"
+          >
+            <div>
+              <p className="font-semibold">{invoice.invoice_number}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Nominal {formatIdr(Number(invoice.amount))} · Jatuh tempo {formatDate(invoice.due_date)}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <StatusBadge status={invoice.status} />
+              <Button asChild size="sm" variant={invoice.status === "buyer_review" ? "default" : "outline"}>
+                <Link href={`/app/buyer/approvals/${invoice.id}`}>
+                  {invoice.status === "buyer_review" ? "Cek & Konfirmasi" : "Lihat Detail"}{" "}
+                  <ArrowRight className="size-3.5" />
+                </Link>
+              </Button>
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
+

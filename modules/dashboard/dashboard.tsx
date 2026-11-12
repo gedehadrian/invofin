@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowDownToLine, ArrowRight, ArrowUpRight, CalendarDays, Check, ChevronLeft, ChevronRight, CircleCheck, Clock3, FileText, Plus, Search, ShieldCheck, Wallet, X, Building2, ScrollText } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, Check, ChevronLeft, ChevronRight, CircleCheck, Clock3, FileText, Plus, Search, Wallet, X, Building2, ScrollText } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,15 +12,31 @@ import { StatusBadge } from "@/components/status-badge";
 import { formatDate, formatIdr } from "@/lib/format";
 import { roles } from "@/modules/workspace/config";
 import { summarizeInvoices } from "./summary";
-import { VolumeChart } from "./volume-chart";
 import type { DashboardData, InvoiceSummary } from "./types";
 
 function exportCsv(rows: InvoiceSummary[]) {
-  // Quote every field and neutralize spreadsheet formula injection.
   const cell = (value: string | number) => `"${String(value).replace(/^[=+@\-\t\r]/, "'$&").replaceAll('"', '""')}"`;
-  const content = [["Invoice", "Mitra", "Nominal IDR", "Jatuh tempo", "Status"], ...rows.map(row => [row.number, row.counterparty, row.amount, row.date, row.status])].map(row => row.map(cell).join(",")).join("\r\n");
+  const content = [
+    ["Invoice", "Mitra", "Nominal IDR", "Jatuh tempo", "Status"],
+    ...rows.map((row) => [row.number, row.counterparty, row.amount, row.date, row.status]),
+  ]
+    .map((row) => row.map(cell).join(","))
+    .join("\r\n");
   const url = URL.createObjectURL(new Blob(["\ufeff", content], { type: "text/csv;charset=utf-8" }));
-  const link = document.createElement("a"); link.href = url; link.download = "invofin-ringkasan.csv"; link.click(); URL.revokeObjectURL(url);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "invofin-ringkasan.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function rowActionLabel(role: DashboardData["role"], status: InvoiceSummary["status"]) {
+  if (role === "vendor" && status === "extraction_review") return "Cek Hasil OCR";
+  if (role === "vendor" && status === "draft") return "Lengkapi";
+  if (role === "buyer" && status === "buyer_review") return "Konfirmasi";
+  if (role === "risk_officer" && status === "risk_review") return "Review Risiko";
+  if (role === "lender" && ["eligible_for_funding", "partially_funded"].includes(status)) return "Danai";
+  return "Lihat Detail";
 }
 
 export function Dashboard({ data, demo = false, view = "overview" }: { data: DashboardData; demo?: boolean; view?: string }) {
@@ -33,61 +49,415 @@ export function Dashboard({ data, demo = false, view = "overview" }: { data: Das
   const [selected, setSelected] = useState<InvoiceSummary | null>(null);
   const [createOpen, setCreateOpen] = useState(demo && role === "vendor" && view === "new");
   const stats = summarizeInvoices(rows);
-  const filtered = rows.filter(row => `${row.number} ${row.counterparty}`.toLowerCase().includes(query.toLowerCase()) && (tab === "all" || (tab === "pending" ? ["submitted", "extraction_review", "buyer_review", "risk_review"].includes(row.status) : tab === "funded" ? ["funded", "repaid"].includes(row.status) : ["eligible_for_funding", "partially_funded"].includes(row.status))));
-  const pages = Math.max(1, Math.ceil(filtered.length / 5));
+
+  const filtered = rows.filter(
+    (row) =>
+      `${row.number} ${row.counterparty}`.toLowerCase().includes(query.toLowerCase()) &&
+      (tab === "all" ||
+        (tab === "pending"
+          ? ["submitted", "extraction_review", "buyer_review", "risk_review"].includes(row.status)
+          : tab === "funded"
+            ? ["funded", "repaid"].includes(row.status)
+            : ["eligible_for_funding", "partially_funded"].includes(row.status))),
+  );
+
+  const pages = Math.max(1, Math.ceil(filtered.length / 6));
   const currentPage = Math.min(page, pages - 1);
-  const shown = filtered.slice(currentPage * 5, (currentPage + 1) * 5);
-  const next = rows.filter(row => !["repaid", "rejected", "draft"].includes(row.status)).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
-  const metrics = role === "admin" ? [
-    { label: "Volume invoice aktif", value: formatIdr(stats.total), hint: "Dari ringkasan invoice", icon: Wallet },
-    { label: "Organisasi", value: String(data.metrics?.organizations ?? 0), hint: "Terdaftar di platform", icon: Building2 },
-    { label: "Perlu ditinjau", value: String(stats.pending), hint: "Dalam proses verifikasi", icon: Clock3 },
-    { label: "Aktivitas audit", value: String(data.metrics?.auditEvents ?? 0), hint: "Jejak aktivitas tercatat", icon: ScrollText },
-  ] : [
-    { label: role === "lender" ? "Komitmen pendanaan" : "Nilai invoice aktif", value: formatIdr(role === "lender" ? data.metrics?.commitments ?? 0 : stats.total), hint: role === "lender" ? "Komitmen, belum pencairan" : "Belum lunas atau ditolak", icon: Wallet },
-    { label: role === "lender" ? "Peluang terbuka" : "Terdanai & lunas", value: role === "lender" ? String(rows.filter(row => ["eligible_for_funding", "partially_funded"].includes(row.status)).length) : formatIdr(stats.funded), hint: role === "lender" ? "Invoice siap menerima komitmen" : "Nilai invoice, bukan dana bersih", icon: CircleCheck },
-    { label: role === "risk_officer" ? "Antrean risiko" : "Dalam verifikasi", value: String(role === "risk_officer" ? rows.filter(row => row.status === "risk_review").length : stats.pending), hint: "Membutuhkan tindak lanjut", icon: Clock3 },
-    { label: "Total invoice", value: String(stats.count), hint: "Pada ringkasan yang dimuat", icon: FileText },
-  ];
+  const shown = filtered.slice(currentPage * 6, (currentPage + 1) * 6);
+
+  const metrics =
+    role === "admin"
+      ? [
+          { label: "Total Tagihan Aktif", value: formatIdr(stats.total), hint: "Sedang berjalan di sistem", icon: Wallet },
+          { label: "Organisasi Terdaftar", value: String(data.metrics?.organizations ?? 0), hint: "Vendor, Buyer, & Lender", icon: Building2 },
+          { label: "Lagi Diverifikasi", value: String(stats.pending), hint: "Menunggu giliran cek", icon: Clock3 },
+          { label: "Jejak Aktivitas", value: String(data.metrics?.auditEvents ?? 0), hint: "Tercatat di log audit", icon: ScrollText },
+        ]
+      : [
+          {
+            label: role === "lender" ? "Total Komitmenmu" : "Nilai Tagihan Aktif",
+            value: formatIdr(role === "lender" ? data.metrics?.commitments ?? 0 : stats.total),
+            hint: role === "lender" ? "Dana yang sudah kamu alokasikan" : "Tagihan yang sedang diproses",
+            icon: Wallet,
+          },
+          {
+            label: role === "lender" ? "Siap Didanai" : "Sudah Cair / Lunas",
+            value:
+              role === "lender"
+                ? `${rows.filter((row) => ["eligible_for_funding", "partially_funded"].includes(row.status)).length} tagihan`
+                : formatIdr(stats.funded),
+            hint: role === "lender" ? "Tersedia di marketplace" : "Total nilai yang sudah beres",
+            icon: CircleCheck,
+          },
+          {
+            label: role === "risk_officer" ? "Menunggu Keputusanmu" : "Sedang Dicek",
+            value: `${role === "risk_officer" ? rows.filter((row) => row.status === "risk_review").length : stats.pending} tagihan`,
+            hint: "Butuh tindakan selanjutnya",
+            icon: Clock3,
+          },
+          {
+            label: "Total Semua Tagihan",
+            value: `${stats.count} tagihan`,
+            hint: "Sejak awal tercatat",
+            icon: FileText,
+          },
+        ];
 
   function action() {
     if (demo && role === "vendor") setCreateOpen(true);
-    else if (demo) { setTab(role === "lender" ? "eligible" : "pending"); setPage(0); document.getElementById("invoice-list")?.scrollIntoView({ behavior: "smooth" }); }
+    else if (demo) {
+      setTab(role === "lender" ? "eligible" : "pending");
+      setPage(0);
+      document.getElementById("invoice-list")?.scrollIntoView({ behavior: "smooth" });
+    }
   }
+
   function demoDecision(status: InvoiceSummary["status"]) {
     if (!selected) return;
-    setRows(current => current.map(row => row.id === selected.id ? { ...row, status } : row));
-    setSelected(null); toast.success("Status contoh diperbarui. Perubahan hanya berlaku di sesi demo ini.");
+    setRows((current) => current.map((row) => (row.id === selected.id ? { ...row, status } : row)));
+    setSelected(null);
+    toast.success("Sip! Status berhasil diupdate di sesi sandbox ini.");
   }
-  if (view === "settings") return <div className="max-w-2xl space-y-6"><h1 className="text-2xl font-semibold">Pengaturan workspace</h1><section className="surface space-y-4 p-6"><h2 className="font-semibold">Profil demo</h2><p className="text-sm text-muted-foreground">Anda sedang mencoba peran {config.label}. Data demo menggunakan identitas fiktif dan akan kembali ke kondisi awal saat halaman dimuat ulang.</p><Button asChild><Link href="/sign-in">Masuk untuk mengelola profil <ArrowRight /></Link></Button></section></div>;
-  return <div className="space-y-6">
-    <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="mb-2 text-[11px] font-medium text-muted-foreground">WORKSPACE {config.label.toUpperCase()}</p><h1 className="text-[25px] font-semibold tracking-tight sm:text-[28px]">{view === "overview" ? config.title : role === "lender" ? "Invoice & pendanaan" : "Kelola invoice"}</h1><p className="mt-2 text-xs leading-relaxed text-muted-foreground sm:text-[13px]">{config.description}</p></div><div className="flex gap-2"><Button variant="outline" onClick={() => exportCsv(filtered)}><ArrowDownToLine />Ekspor</Button>{demo ? <Button onClick={action}><Plus />{config.action}</Button> : <Button asChild><Link href={config.actionHref}><Plus />{config.action}</Link></Button>}</div></div>
-    {demo && view === "new" && role === "vendor" && <div className="flex items-center justify-between gap-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm"><span>Buat pengajuan invoice contoh untuk mencoba alurnya.</span><Button onClick={() => setCreateOpen(true)}>Buat invoice</Button></div>}
-    {view === "overview" && <>
-      <section className="relative overflow-hidden rounded-2xl border border-blue-100 bg-[#edf4ff] p-5 sm:p-6"><div className="relative z-10 flex flex-wrap items-center justify-between gap-4"><div className="max-w-xl"><span className="mb-2 inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-wide text-primary"><span className="size-1.5 rounded-full bg-primary" />MODAL KERJA, LEBIH TERENCANA</span><h2 className="text-lg font-semibold tracking-tight">Invoice berjalan. Usaha terus berkembang.</h2><p className="mt-2 max-w-md text-xs leading-relaxed text-slate-600">{role === "vendor" ? "Ajukan invoice yang belum jatuh tempo dan pantau setiap tahap pendanaannya dengan transparan." : "Hubungkan transaksi yang terverifikasi dengan pendanaan yang transparan di setiap tahap."}</p></div><Link href="/how-it-works" className="flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-xs font-semibold text-primary shadow-sm">Kenali alur pendanaan <ArrowUpRight className="size-4" /></Link></div><div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-24 size-80 rounded-full border-[40px] border-blue-100/60" /></section>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(metric => <section key={metric.label} className="surface p-5"><div className="flex items-center justify-between gap-1"><p className="text-xs text-muted-foreground">{metric.label}</p><span className="flex size-8 items-center justify-center rounded-lg bg-muted"><metric.icon className="size-4 text-slate-500" strokeWidth={1.7} /></span></div><p className="mt-4 text-[23px] font-semibold tracking-tight tabular-nums">{metric.value}</p><p className="mt-2 text-[10px] text-muted-foreground">{metric.hint}</p></section>)}</div>
-      <div className="grid gap-5 xl:grid-cols-[1.65fr_1fr]"><VolumeChart rows={rows} /><section className="surface p-5 sm:p-6"><div className="flex items-center justify-between"><h2 className="text-sm font-semibold">Alur pengajuan Anda</h2><span className="rounded-md bg-blue-50 px-2 py-1 text-[10px] font-medium text-primary">{stats.count} invoice</span></div><p className="mt-1 text-xs text-muted-foreground">Setiap langkah punya pemeriksaan yang jelas.</p><div className="mt-5 space-y-0">{[
-        { label: "Dokumen & ekstraksi", sub: "Invoice, PO, dan BAST", statuses: ["draft", "submitted", "extraction_review"], icon: FileText },
-        { label: "Konfirmasi buyer", sub: "Keabsahan nilai dan jatuh tempo", statuses: ["buyer_review"], icon: Building2 },
-        { label: "Tinjauan risiko", sub: "Pemeriksaan anomali & keputusan", statuses: ["risk_review"], icon: ShieldCheck },
-        { label: "Pendanaan", sub: "Marketplace dan komitmen lender", statuses: ["eligible_for_funding", "partially_funded", "funded"], icon: Wallet },
-      ].map((step, index) => <div key={step.label} className="relative flex items-start gap-3 pb-5 last:pb-0">{index < 3 && <span className="absolute bottom-0 left-[15px] top-8 border-l border-dashed border-slate-200" />}<span className="relative flex size-8 shrink-0 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-primary"><step.icon className="size-3.5" strokeWidth={1.7} /></span><div className="flex-1 pt-0.5"><p className="text-xs font-medium">{step.label}</p><p className="mt-1 text-[10px] text-muted-foreground">{step.sub}</p></div><span className="pt-1 text-xs font-semibold tabular-nums">{rows.filter(row => step.statuses.includes(row.status)).length}</span></div>)}</div></section></div>
-    </>}
-    <section id="invoice-list" className="surface overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 p-5 sm:px-6"><div><h2 className="text-sm font-semibold">{role === "lender" ? "Peluang pendanaan" : "Invoice terbaru"}</h2><p className="mt-1 text-[11px] text-muted-foreground">Pantau status dan detail transaksi Anda.</p></div><label className="relative"><Search className="absolute left-3 top-2.5 size-3.5 text-muted-foreground" /><Input aria-label="Cari invoice atau mitra" placeholder="Cari invoice atau mitra..." value={query} onChange={event => { setQuery(event.target.value); setPage(0); }} className="h-9 w-full bg-white pl-9 text-xs sm:w-60" /></label></div>
-      <div className="flex gap-5 overflow-x-auto border-b px-5 text-xs sm:px-6">{[["all", "Semua invoice"], ["pending", "Dalam verifikasi"], ["eligible", "Siap didanai"], ["funded", "Terdanai & lunas"]].map(([value, label]) => <button key={value} onClick={() => { setTab(value); setPage(0); }} aria-pressed={tab === value} className={`shrink-0 border-b-2 pb-3 font-medium transition-colors ${tab === value ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{label}{value === "all" && <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[9px]">{rows.length}</span>}</button>)}</div>
-      <div className="overflow-x-auto"><table className="w-full min-w-[650px] text-left text-xs"><caption className="sr-only">Daftar invoice dan statusnya</caption><thead className="bg-slate-50/80 text-[10px] text-muted-foreground"><tr><th className="px-6 py-3 font-medium">NOMOR INVOICE</th><th className="px-4 py-3 font-medium">{role === "buyer" ? "VENDOR" : "MITRA TRANSAKSI"}</th><th className="px-4 py-3 font-medium">NOMINAL</th><th className="px-4 py-3 font-medium">JATUH TEMPO</th><th className="px-4 py-3 font-medium">STATUS</th><th className="px-4 py-3"><span className="sr-only">Detail</span></th></tr></thead><tbody>{shown.map(row => <tr key={row.id} className="border-t border-border transition-colors hover:bg-blue-50/30"><td className="px-6 py-4"><div className="flex items-center gap-2.5"><span className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-white text-primary"><FileText className="size-3.5" /></span>{demo ? <button onClick={() => setSelected(row)} className="font-medium hover:text-primary">{row.number}</button> : <Link className="font-medium hover:text-primary" href={row.href ?? config.actionHref}>{row.number}</Link>}</div></td><td className="max-w-[190px] px-4 py-4 text-[11px] text-muted-foreground">{row.counterparty}</td><td className="whitespace-nowrap px-4 py-4 font-medium tabular-nums">{formatIdr(row.amount)}</td><td className="whitespace-nowrap px-4 py-4 text-[11px] text-muted-foreground">{formatDate(row.date)}</td><td className="px-4 py-4"><StatusBadge status={row.status} /></td><td className="pr-4">{demo ? <Button variant="ghost" size="icon-sm" aria-label={`Detail ${row.number}`} onClick={() => setSelected(row)}><ArrowUpRight className="size-4" /></Button> : <Link href={row.href ?? config.actionHref} aria-label={`Detail ${row.number}`}><ArrowUpRight className="size-4 text-muted-foreground" /></Link>}</td></tr>)}</tbody></table>{shown.length === 0 && <div className="px-6 py-12 text-center"><Search className="mx-auto mb-3 size-6 text-muted-foreground" /><p className="text-sm font-medium">{rows.length ? "Tidak ada invoice yang cocok" : "Belum ada invoice"}</p><p className="mt-2 text-xs text-muted-foreground">{rows.length ? "Coba kata kunci atau filter lainnya." : "Invoice akan tampil di sini setelah pengajuan dibuat."}</p>{rows.length > 0 && <Button variant="link" onClick={() => { setQuery(""); setTab("all"); setPage(0); }}>Hapus filter <X /></Button>}</div>}</div>
-      <div className="flex items-center justify-between border-t px-5 py-3 text-[10px] text-muted-foreground"><p>Menampilkan {filtered.length ? currentPage * 5 + 1 : 0}–{Math.min((currentPage + 1) * 5, filtered.length)} dari {filtered.length} invoice</p><div className="flex items-center gap-2"><Button variant="outline" size="icon-sm" disabled={currentPage === 0} aria-label="Halaman sebelumnya" onClick={() => setPage(currentPage - 1)}><ChevronLeft /></Button><span>{currentPage + 1} / {pages}</span><Button variant="outline" size="icon-sm" disabled={currentPage + 1 >= pages} aria-label="Halaman berikutnya" onClick={() => setPage(currentPage + 1)}><ChevronRight /></Button></div></div>
-    </section>
-    {view === "overview" && <div className="grid gap-5 xl:grid-cols-[1.65fr_1fr]"><section className="surface p-5 sm:p-6"><div className="mb-4 flex items-center gap-2"><CalendarDays className="size-4 text-primary" /><h2 className="text-sm font-semibold">Jatuh tempo terdekat</h2></div>{next.length ? next.map(row => <div key={row.id} className="flex items-center justify-between gap-3 border-t py-3 first:border-0"><div><p className="text-xs font-medium">{row.counterparty}</p><p className="mt-1 text-[10px] text-muted-foreground">{row.number} · {formatDate(row.date)}</p></div><p className="text-xs font-semibold tabular-nums">{formatIdr(row.amount)}</p></div>) : <p className="text-xs text-muted-foreground">Belum ada jadwal jatuh tempo.</p>}</section><section className="flex flex-col justify-center rounded-2xl border border-blue-100 bg-blue-50/50 p-6"><span className="mb-3 flex size-10 items-center justify-center rounded-xl bg-white text-primary"><ShieldCheck className="size-5" /></span><h2 className="text-sm font-semibold">Transparan di setiap langkah.</h2><p className="mt-2 text-xs leading-relaxed text-muted-foreground">Buyer mengonfirmasi transaksi. Risk Officer meninjau kelayakan. Anda tetap mengetahui prosesnya.</p><Link href="/how-it-works" className="mt-4 flex items-center gap-2 text-xs font-semibold text-primary">Lihat cara kerja <ArrowRight className="size-3.5" /></Link></section></div>}
-    <p className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[10px] text-muted-foreground"><span>© {new Date().getFullYear()} InvoFin · Modal kerja untuk langkah berikutnya.</span><span className="flex items-center gap-1"><ShieldCheck className="size-3" />{demo ? "Data contoh · tanpa transaksi riil" : "Ringkasan hingga 500 invoice terbaru"}</span></p>
-    <Dialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }}><DialogContent><DialogHeader><DialogTitle>{selected?.number}</DialogTitle><DialogDescription>Detail invoice contoh · {config.label}</DialogDescription></DialogHeader>{selected && <><div className="space-y-4 py-3"><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Status</span><StatusBadge status={selected.status} /></div>{[["Mitra", selected.counterparty], ["Nilai invoice", formatIdr(selected.amount)], ["Jatuh tempo", formatDate(selected.date)]].map(([label, value]) => <div key={label} className="flex justify-between gap-4 text-sm"><span className="text-muted-foreground">{label}</span><span className="text-right font-medium">{value}</span></div>)}<p className="rounded-lg bg-muted p-3 text-xs leading-relaxed text-muted-foreground">Demo menggunakan data sintetis. Verifikasi dokumen, penilaian AI, dan transfer dana tidak dijalankan di halaman ini.</p></div><div className="flex flex-wrap gap-2">{role === "buyer" && selected.status === "buyer_review" && <><Button onClick={() => demoDecision("risk_review")}><Check />Konfirmasi contoh</Button><Button variant="outline" onClick={() => demoDecision("rejected")}>Sengketakan contoh</Button></>}{role === "risk_officer" && selected.status === "risk_review" && <><Button onClick={() => demoDecision("eligible_for_funding")}><Check />Setujui contoh</Button><Button variant="outline" onClick={() => demoDecision("rejected")}>Tolak contoh</Button></>}{role === "lender" && selected.status === "eligible_for_funding" && <Button onClick={() => toast.info("Masuk ke akun lender untuk membuat komitmen. Demo ini tidak memproses pendanaan.")}>Pelajari komitmen pendanaan</Button>}</div></>}</DialogContent></Dialog>
-    <Dialog open={createOpen} onOpenChange={setCreateOpen}><DialogContent><DialogHeader><DialogTitle>Ajukan invoice contoh</DialogTitle><DialogDescription>Coba formulir pengajuan. Data hanya tersimpan selama halaman ini dibuka.</DialogDescription></DialogHeader><form className="space-y-4" onSubmit={event => {
-      event.preventDefault(); const form = new FormData(event.currentTarget); const amount = Number(form.get("amount")); const number = String(form.get("number")).trim();
-      if (!Number.isFinite(amount) || amount <= 0 || amount > 1e12) return toast.error("Nominal harus antara Rp1 dan Rp1 triliun.");
-      if (rows.some(row => row.number === number)) return toast.error("Nomor invoice sudah digunakan.");
-      setRows(current => [{ id: crypto.randomUUID(), number, amount, counterparty: String(form.get("buyer")), date: String(form.get("date")), createdAt: new Date().toISOString(), status: "draft" }, ...current]);
-      setTab("all"); setQuery(""); setPage(0); setCreateOpen(false); toast.success("Draf contoh berhasil dibuat.");
-    }}><div className="space-y-2"><Label htmlFor="demo-number">Nomor invoice</Label><Input id="demo-number" name="number" required minLength={3} maxLength={80} placeholder="INV/2026/1031" /></div><div className="space-y-2"><Label htmlFor="demo-buyer">Nama buyer</Label><Input id="demo-buyer" name="buyer" required minLength={3} maxLength={120} placeholder="PT Nama Perusahaan" /></div><div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label htmlFor="demo-amount">Nominal (Rp)</Label><Input id="demo-amount" name="amount" type="number" min="1" max="1000000000000" step="1" required /></div><div className="space-y-2"><Label htmlFor="demo-date">Jatuh tempo</Label><Input id="demo-date" name="date" type="date" min={new Date().toISOString().slice(0, 10)} required /></div></div><Button type="submit" className="w-full"><Plus />Simpan draf contoh</Button></form></DialogContent></Dialog>
-  </div>;
+
+  if (view === "settings") {
+    return (
+      <div className="max-w-xl space-y-6">
+        <h1 className="text-2xl font-semibold">Pengaturan Akun</h1>
+        <section className="surface space-y-4 p-6">
+          <h2 className="font-semibold">Kamu lagi pakai akun Sandbox ({config.label})</h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Semua perubahan di mode demo cuma sementara dan bakal ke-reset kalau halaman di-refresh. Mau coba alur lengkapnya?
+          </p>
+          <Button asChild>
+            <Link href="/sign-in">
+              Login ke Akun Asli <ArrowRight />
+            </Link>
+          </Button>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">{config.title}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{config.description}</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => exportCsv(filtered)}>
+            <ArrowDownToLine />
+            Unduh CSV
+          </Button>
+          {demo ? (
+            <Button size="sm" onClick={action}>
+              <Plus />
+              {config.action}
+            </Button>
+          ) : (
+            <Button asChild size="sm">
+              <Link href={config.actionHref}>
+                <Plus />
+                {config.action}
+              </Link>
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {view === "overview" && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {metrics.map((metric) => (
+            <section key={metric.label} className="surface p-5">
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-xs font-medium text-muted-foreground">{metric.label}</p>
+                <span className="flex size-8 items-center justify-center rounded-lg bg-blue-50 text-primary">
+                  <metric.icon className="size-4" strokeWidth={1.8} />
+                </span>
+              </div>
+              <p className="mt-3 text-2xl font-semibold tracking-tight tabular-nums">{metric.value}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{metric.hint}</p>
+            </section>
+          ))}
+        </div>
+      )}
+
+      <section id="invoice-list" className="surface overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-5">
+          <div>
+            <h2 className="text-base font-semibold">
+              {role === "lender" ? "Daftar Tagihan Siap Didanai" : "Daftar Tagihan"}
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Klik tombol di sebelah kanan baris untuk memproses atau melihat detailnya.
+            </p>
+          </div>
+          <label className="relative">
+            <Search className="absolute left-3 top-2.5 size-3.5 text-muted-foreground" />
+            <Input
+              aria-label="Cari invoice atau mitra"
+              placeholder="Cari nomor atau nama PT..."
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(0);
+              }}
+              className="h-9 w-full bg-white pl-9 text-xs sm:w-64"
+            />
+          </label>
+        </div>
+
+        <div className="flex gap-5 overflow-x-auto border-b px-5 text-xs">
+          {[
+            ["all", "Semua"],
+            ["pending", "Perlu Dicek"],
+            ["eligible", "Siap Didanai"],
+            ["funded", "Sudah Beres"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              onClick={() => {
+                setTab(value);
+                setPage(0);
+              }}
+              aria-pressed={tab === value}
+              className={`shrink-0 border-b-2 pb-3 font-medium transition-colors ${
+                tab === value
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {label}
+              {value === "all" && (
+                <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 text-[10px]">{rows.length}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-xs">
+            <caption className="sr-only">Daftar invoice dan statusnya</caption>
+            <thead className="bg-slate-50/80 text-[11px] text-muted-foreground">
+              <tr>
+                <th className="px-5 py-3 font-medium">No. Tagihan</th>
+                <th className="px-4 py-3 font-medium">{role === "buyer" ? "Dari Vendor" : "Mitra"}</th>
+                <th className="px-4 py-3 font-medium">Nominal</th>
+                <th className="px-4 py-3 font-medium">Jatuh Tempo</th>
+                <th className="px-4 py-3 font-medium">Posisi Saat Ini</th>
+                <th className="px-5 py-3 text-right font-medium">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((row) => (
+                <tr key={row.id} className="border-t border-border transition-colors hover:bg-blue-50/30">
+                  <td className="px-5 py-3.5 font-medium">{row.number}</td>
+                  <td className="max-w-[200px] truncate px-4 py-3.5 text-muted-foreground">{row.counterparty}</td>
+                  <td className="whitespace-nowrap px-4 py-3.5 font-semibold tabular-nums">{formatIdr(row.amount)}</td>
+                  <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground">{formatDate(row.date)}</td>
+                  <td className="px-4 py-3.5">
+                    <StatusBadge status={row.status} />
+                  </td>
+                  <td className="px-5 py-3.5 text-right">
+                    {demo ? (
+                      <Button variant="outline" size="sm" onClick={() => setSelected(row)}>
+                        {rowActionLabel(role, row.status)}
+                      </Button>
+                    ) : (
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={row.href ?? config.actionHref}>
+                          {rowActionLabel(role, row.status)} <ArrowRight className="size-3.5" />
+                        </Link>
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {shown.length === 0 && (
+            <div className="px-6 py-12 text-center">
+              <p className="text-sm font-medium">
+                {rows.length ? "Hmm, tagihan yang kamu cari nggak ketemu" : "Belum ada tagihan nih"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {rows.length
+                  ? "Coba ketik kata kunci lain atau ganti tab filternya."
+                  : "Begitu ada tagihan masuk, daftarnya bakal langsung nongol di sini."}
+              </p>
+              {rows.length > 0 && (
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    setQuery("");
+                    setTab("all");
+                    setPage(0);
+                  }}
+                >
+                  Reset Filter <X />
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {pages > 1 && (
+          <div className="flex items-center justify-between border-t px-5 py-3 text-xs text-muted-foreground">
+            <p>
+              Halaman {currentPage + 1} dari {pages} ({filtered.length} tagihan)
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon-sm"
+                disabled={currentPage === 0}
+                aria-label="Halaman sebelumnya"
+                onClick={() => setPage(currentPage - 1)}
+              >
+                <ChevronLeft />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                disabled={currentPage + 1 >= pages}
+                aria-label="Halaman berikutnya"
+                onClick={() => setPage(currentPage + 1)}
+              >
+                <ChevronRight />
+              </Button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <Dialog
+        open={!!selected}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{selected?.number}</DialogTitle>
+            <DialogDescription>Simulasi cepat sebagai {config.label}</DialogDescription>
+          </DialogHeader>
+          {selected && (
+            <>
+              <div className="space-y-3 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Status</span>
+                  <StatusBadge status={selected.status} />
+                </div>
+                {[
+                  ["Mitra", selected.counterparty],
+                  ["Nominal", formatIdr(selected.amount)],
+                  ["Jatuh Tempo", formatDate(selected.date)],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex justify-between gap-4 text-sm">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="text-right font-medium">{value}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2 pt-2">
+                {role === "buyer" && selected.status === "buyer_review" && (
+                  <>
+                    <Button onClick={() => demoDecision("risk_review")}>
+                      <Check />
+                      Konfirmasi Tagihan Ini
+                    </Button>
+                    <Button variant="outline" onClick={() => demoDecision("rejected")}>
+                      Tolak / Sengketa
+                    </Button>
+                  </>
+                )}
+                {role === "risk_officer" && selected.status === "risk_review" && (
+                  <>
+                    <Button onClick={() => demoDecision("eligible_for_funding")}>
+                      <Check />
+                      Approve ke Marketplace
+                    </Button>
+                    <Button variant="outline" onClick={() => demoDecision("rejected")}>
+                      Tolak Pengajuan
+                    </Button>
+                  </>
+                )}
+                {role === "lender" && selected.status === "eligible_for_funding" && (
+                  <Button onClick={() => demoDecision("funded")}>
+                    <Check />
+                    Simulasikan Danai Penuh
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Buat Tagihan Contoh</DialogTitle>
+            <DialogDescription>Coba tambah 1 baris tagihan ke tabel sandbox-mu.</DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const form = new FormData(event.currentTarget);
+              const amount = Number(form.get("amount"));
+              const number = String(form.get("number")).trim();
+              if (!Number.isFinite(amount) || amount <= 0 || amount > 1e12)
+                return toast.error("Nominal harus masuk akal ya (Rp1 sampai Rp1 triliun).");
+              if (rows.some((row) => row.number === number))
+                return toast.error("Nomor invoice itu sudah dipakai di tabel.");
+              setRows((current) => [
+                {
+                  id: crypto.randomUUID(),
+                  number,
+                  amount,
+                  counterparty: String(form.get("buyer")),
+                  date: String(form.get("date")),
+                  createdAt: new Date().toISOString(),
+                  status: "draft",
+                },
+                ...current,
+              ]);
+              setTab("all");
+              setQuery("");
+              setPage(0);
+              setCreateOpen(false);
+              toast.success("Berhasil! Tagihan baru sudah nongol di baris paling atas.");
+            }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="demo-number">Nomor Invoice</Label>
+              <Input id="demo-number" name="number" required minLength={3} maxLength={80} placeholder="INV/2026/1031" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="demo-buyer">Nama Perusahaan Buyer</Label>
+              <Input id="demo-buyer" name="buyer" required minLength={3} maxLength={120} placeholder="PT Sumber Retail Indonesia" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="demo-amount">Nominal (Rp)</Label>
+                <Input id="demo-amount" name="amount" type="number" min="1" max="1000000000000" step="1" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="demo-date">Jatuh Tempo</Label>
+                <Input id="demo-date" name="date" type="date" min={new Date().toISOString().slice(0, 10)} required />
+              </div>
+            </div>
+            <Button type="submit" className="w-full">
+              <Plus />
+              Tambahkan ke Daftar
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
+

@@ -12,21 +12,26 @@ export default async function AdminOrganizationsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Organisasi</h1>
+      <div>
+        <h1 className="text-2xl font-semibold">Approve & Kelola Organisasi</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          User baru yang habis daftar bakal berstatus <strong>Menunggu (Pending)</strong>. Ubah ke <strong>Aktif</strong> biar mereka bisa langsung masuk ke workspace!
+        </p>
+      </div>
       <div className="surface overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-muted text-left text-muted-foreground">
+          <thead className="bg-muted text-left text-xs text-muted-foreground">
             <tr>
-              <th className="px-4 py-3">Nama</th>
-              <th className="px-4 py-3">Tipe</th>
-              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 font-medium">Nama Organisasi</th>
+              <th className="px-4 py-3 font-medium">Peran</th>
+              <th className="px-4 py-3 font-medium">Status Akses</th>
             </tr>
           </thead>
           <tbody>
             {(data ?? []).map((org) => (
-              <tr key={org.id} className="border-t border-border">
-                <td className="px-4 py-3">{org.name}</td>
-                <td className="px-4 py-3">{org.type}</td>
+              <tr key={org.id} className="border-t border-border hover:bg-blue-50/30">
+                <td className="px-4 py-3 font-medium">{org.name}</td>
+                <td className="px-4 py-3 capitalize text-muted-foreground">{org.type}</td>
                 <td className="px-4 py-3">
                   <OrgStatusForm organizationId={org.id} status={org.status} />
                 </td>
@@ -38,3 +43,4 @@ export default async function AdminOrganizationsPage() {
     </div>
   );
 }
+

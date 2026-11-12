@@ -24,25 +24,43 @@ export default async function BuyerApprovalDetail({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">{invoice.invoice_number}</h1>
           <p className="text-sm text-muted-foreground">
-            {formatIdr(Number(invoice.amount))} · {formatDate(invoice.due_date)}
+            Tagihan {formatIdr(Number(invoice.amount))} · Jatuh tempo {formatDate(invoice.due_date)}
           </p>
         </div>
         <StatusBadge status={invoice.status} />
       </div>
-      <DocumentLinks documents={invoice.invoice_documents ?? []} />
-      {invoice.status === "buyer_review" ? (
-        <BuyerDecisionForm
-          invoiceId={invoice.id}
-          amount={Number(invoice.amount)}
-          dueDate={invoice.due_date}
-        />
-      ) : (
-        <p className="text-sm text-muted-foreground">Invoice ini sudah diputuskan.</p>
-      )}
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="surface p-5">
+          <h2 className="font-semibold">Cek 3 Dokumen dari Vendor</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Pastikan Invoice, PO, dan BAST sesuai dengan catatan penerimaan barang di perusahaanmu.
+          </p>
+          <DocumentLinks documents={invoice.invoice_documents ?? []} />
+        </div>
+
+        <div className="surface p-5">
+          <h2 className="font-semibold">Keputusan Konfirmasi Buyer</h2>
+          {invoice.status === "buyer_review" ? (
+            <div className="mt-3">
+              <BuyerDecisionForm
+                invoiceId={invoice.id}
+                amount={Number(invoice.amount)}
+                dueDate={invoice.due_date}
+              />
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Sip, tagihan ini sudah kamu berikan keputusan sebelumnya.
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
+

@@ -44,12 +44,12 @@ export function tenorDays(issueDate: string, dueDate: string) {
 export const INVOICE_STATUS_LABEL: Record<string, string> = {
   draft: "Draf",
   submitted: "Diajukan",
-  extraction_review: "Tinjau ekstraksi",
-  buyer_review: "Menunggu buyer",
-  risk_review: "Menunggu Risk Officer",
-  eligible_for_funding: "Siap pendanaan",
-  partially_funded: "Sebagian terdanai",
-  funded: "Terdanai",
+  extraction_review: "Cek Hasil OCR",
+  buyer_review: "Menunggu Buyer",
+  risk_review: "Review Risiko",
+  eligible_for_funding: "Siap Didanai",
+  partially_funded: "Patungan Berjalan",
+  funded: "Terdanai Penuh",
   rejected: "Ditolak",
   repaid: "Lunas",
 };

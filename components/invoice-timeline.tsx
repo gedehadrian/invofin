@@ -1,17 +1,14 @@
-import { StatusBadge } from "@/components/status-badge";
-import { formatDateTime, INVOICE_STATUS_LABEL } from "@/lib/format";
+import { Check } from "lucide-react";
+import { INVOICE_STATUS_LABEL } from "@/lib/format";
 import type { StatusHistory } from "@/lib/database.types";
 
-// Alur nyata yang ditulis aplikasi. Status 'submitted' masih ada di enum database
-// tetapi tidak pernah dipakai kode, jadi tidak ditampilkan agar tidak menyesatkan.
-const FLOW = [
-  "draft",
-  "extraction_review",
-  "buyer_review",
-  "risk_review",
-  "eligible_for_funding",
-  "partially_funded",
-  "funded",
+const STEPS = [
+  { key: "draft", label: "1. Draf" },
+  { key: "extraction_review", label: "2. Cek OCR" },
+  { key: "buyer_review", label: "3. Konfirmasi Buyer" },
+  { key: "risk_review", label: "4. Review Risiko" },
+  { key: "eligible_for_funding", label: "5. Tayang Marketplace" },
+  { key: "funded", label: "6. Terdanai!" },
 ];
 
 export function InvoiceTimeline({
@@ -21,44 +18,39 @@ export function InvoiceTimeline({
   status: string;
   history: StatusHistory[];
 }) {
-  const currentIdx = FLOW.indexOf(status);
-  // extraction_review hanya dilewati saat OCR belum lengkap, jadi riwayat nyata
-  // lebih akurat daripada sekadar posisi di FLOW.
+  const normalizedStatus = status === "partially_funded" ? "eligible_for_funding" : status === "repaid" ? "funded" : status;
+  const currentIdx = STEPS.findIndex((s) => s.key === normalizedStatus);
   const reached = new Set(history.map((item) => item.to_status));
+
   return (
-    <div className="space-y-6">
-      <ol className="grid gap-2 sm:grid-cols-4 lg:grid-cols-7">
-        {FLOW.map((step, idx) => {
-          const passed = reached.size > 0 ? reached.has(step) : currentIdx >= idx;
-          const done = passed && status !== "rejected";
-          const active = step === status;
+    <div className="surface p-4">
+      <div className="mb-3 flex items-center justify-between text-xs">
+        <span className="font-semibold">Progres Tagihan</span>
+        <span className="text-muted-foreground">Status saat ini: {INVOICE_STATUS_LABEL[status] ?? status}</span>
+      </div>
+      <ol className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {STEPS.map((step, idx) => {
+          const passed = reached.size > 0 ? reached.has(step.key) || currentIdx > idx : currentIdx >= idx;
+          const active = step.key === normalizedStatus;
+          const done = passed && !active && status !== "rejected";
           return (
             <li
-              key={step}
-              className={`rounded-lg border px-2 py-2 text-[11px] ${
+              key={step.key}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${
                 active
-                  ? "border-primary/30 bg-secondary text-primary"
+                  ? "border-primary bg-blue-50 text-primary"
                   : done
-                    ? "border-border bg-muted text-foreground"
+                    ? "border-emerald-200 bg-emerald-50/50 text-emerald-800"
                     : "border-border text-muted-foreground"
               }`}
             >
-              {INVOICE_STATUS_LABEL[step] ?? step}
+              {done && <Check className="size-3.5 shrink-0" />}
+              <span className="truncate">{step.label}</span>
             </li>
           );
         })}
       </ol>
-      <div className="space-y-3">
-        {history.map((item) => (
-          <div key={item.id} className="flex items-start justify-between gap-3 text-sm">
-            <div>
-              <StatusBadge status={item.to_status} />
-              {item.note ? <p className="mt-1 text-muted-foreground">{item.note}</p> : null}
-            </div>
-            <span className="text-xs text-slate-500">{formatDateTime(item.created_at)}</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
+

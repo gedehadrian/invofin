@@ -69,9 +69,9 @@ export default function MarketingLayout({
       <MarketingHeader />
       {children}
       <footer className="border-t border-border px-4 py-6 text-xs text-muted-foreground md:px-6">
-        <div className="mx-auto max-w-6xl">
-          InvoFin adalah platform perantara. Bukan pemberi pinjaman, tidak menjamin imbal hasil, dan
-          belum mengklaim lisensi operasional.
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
+          <span>© {new Date().getFullYear()} InvoFin — Biar tagihan nggak cuma numpuk di laci.</span>
+          <span>Lingkungan Prototipe Kampus (Simulasi)</span>
         </div>
       </footer>
     </div>

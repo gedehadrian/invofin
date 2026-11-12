@@ -15,12 +15,13 @@ export default async function NewInvoicePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Ajukan invoice</h1>
-        <p className="text-sm text-muted-foreground">
-          Lengkapi data, unggah ketiga dokumen, lalu tinjau hasil pemeriksaan sebelum mengajukan ke buyer.
+        <h1 className="text-2xl font-semibold">Ajukan Pencairan Invoice</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Cukup 2 langkah: isi detail tagihanmu, lalu lampirkan 3 bukti dokumennya (Invoice, PO, dan BAST).
         </p>
       </div>
       <InvoiceWizard buyers={buyers ?? []} />
     </div>
   );
 }
+
