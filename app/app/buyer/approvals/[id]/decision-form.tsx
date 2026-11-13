@@ -1,12 +1,13 @@
 "use client";
 
 import { useActionState } from "react";
-import { Check, XCircle } from "lucide-react";
-import { decideBuyer, type ActionState } from "@/app/actions/buyer";
+import { Check, CheckCircle2, XCircle } from "lucide-react";
+import { decideBuyer, repayInvoice, type ActionState } from "@/app/actions/buyer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { formatIdr } from "@/lib/format";
 
 const initial: ActionState = {};
 
@@ -62,6 +63,28 @@ export function BuyerDecisionForm({
           Tolak / Sengketa
         </Button>
       </div>
+    </form>
+  );
+}
+
+export function BuyerRepayForm({ invoiceId, amount }: { invoiceId: string; amount: number }) {
+  const [state, action, pending] = useActionState(repayInvoice, initial);
+  return (
+    <form action={action} className="space-y-4 rounded-xl border border-blue-200 bg-blue-50/50 p-4">
+      <input type="hidden" name="invoiceId" value={invoiceId} />
+      <div>
+        <p className="text-sm font-semibold text-primary">Waktunya Pelunasan Jatuh Tempo</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          Tagihan ini sudah 100% didanai oleh para Lender. Klik tombol di bawah ini untuk mensimulasikan pelunasan penuh sebesar{" "}
+          <strong className="text-foreground">{formatIdr(amount)}</strong> agar dana pokok & imbal hasil kembali ke Lender dan sisa cadangan cair ke Vendor.
+        </p>
+      </div>
+      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
+      {state.success ? <p className="text-sm font-medium text-emerald-700">{state.success}</p> : null}
+      <Button type="submit" disabled={pending || !!state.success} className="w-full sm:w-auto">
+        <CheckCircle2 />
+        {pending ? "Memproses Pelunasan..." : "Simulasikan Pelunasan Tagihan Sekarang"}
+      </Button>
     </form>
   );
 }

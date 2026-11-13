@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DocumentLinks } from "@/components/document-links";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDate, formatIdr } from "@/lib/format";
-import { BuyerDecisionForm } from "./decision-form";
+import { BuyerDecisionForm, BuyerRepayForm } from "./decision-form";
 
 export default async function BuyerApprovalDetail({
   params,
@@ -44,7 +44,13 @@ export default async function BuyerApprovalDetail({
         </div>
 
         <div className="surface p-5">
-          <h2 className="font-semibold">Keputusan Konfirmasi Buyer</h2>
+          <h2 className="font-semibold">
+            {invoice.status === "funded"
+              ? "Pelunasan Tagihan (Simulasi)"
+              : invoice.status === "repaid"
+                ? "Status Pelunasan"
+                : "Keputusan Konfirmasi Buyer"}
+          </h2>
           {invoice.status === "buyer_review" ? (
             <div className="mt-3">
               <BuyerDecisionForm
@@ -53,6 +59,14 @@ export default async function BuyerApprovalDetail({
                 dueDate={invoice.due_date}
               />
             </div>
+          ) : invoice.status === "funded" ? (
+            <div className="mt-3">
+              <BuyerRepayForm invoiceId={invoice.id} amount={Number(invoice.amount)} />
+            </div>
+          ) : invoice.status === "repaid" ? (
+            <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm font-medium text-emerald-800">
+              ✅ Tagihan ini sudah lunas! Seluruh siklus pendanaan telah selesai.
+            </p>
           ) : (
             <p className="mt-2 text-sm text-muted-foreground">
               Sip, tagihan ini sudah kamu berikan keputusan sebelumnya.

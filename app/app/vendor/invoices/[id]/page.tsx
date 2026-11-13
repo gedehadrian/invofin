@@ -52,6 +52,28 @@ export default async function VendorInvoiceDetail({
 
       <InvoiceTimeline status={invoice.status} history={invoice.status_history ?? []} />
 
+      {invoice.status === "funded" && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 text-sm text-primary">
+          <p className="font-semibold">
+            🎉 Pendanaan Terpenuhi 100%!
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-foreground">
+            Dana bersih pencairan awal telah ditransfer ke rekening operasionalmu (Simulasi). Menunggu pelunasan Buyer saat jatuh tempo.
+          </p>
+        </div>
+      )}
+
+      {invoice.status === "repaid" && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-sm text-emerald-800">
+          <p className="font-semibold">
+            ✅ Siklus Selesai & Lunas!
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-emerald-900">
+            Buyer telah melunasi tagihan, imbal hasil Lender telah dibayarkan, dan sisa cadangan tagihan telah diteruskan ke rekeningmu.
+          </p>
+        </div>
+      )}
+
       {invoice.status === "extraction_review" && (
         <div className="surface p-5">
           <h2 className="text-base font-semibold">Cek Hasil Bacaan Dokumen (OCR)</h2>
@@ -69,6 +91,8 @@ export default async function VendorInvoiceDetail({
         amount={Number(invoice.amount)}
         advancePercent={invoice.requested_advance_percent ?? 80}
         feePercent={invoice.funding_opportunities?.vendor_fee_percent}
+        lenderReturnPercent={invoice.funding_opportunities?.lender_return_percent}
+        status={invoice.status}
       />
 
       <section className="grid gap-6 lg:grid-cols-3">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, type ComponentProps } from "react";
+import { useActionState, useState, type ComponentProps } from "react";
 import Link from "next/link";
 import { signInAction, signUpAction, completeOnboardingAction, resetPasswordAction, updatePasswordAction, type ActionState } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -14,14 +14,79 @@ function Field({ label, name, ...props }: ComponentProps<typeof Input> & { label
 function Feedback({ state }: { state: ActionState }) {
   return <>{state.error && <p role="alert" className="text-sm text-destructive">{state.error}</p>}{state.success && <p role="status" className="rounded-lg bg-primary/5 p-3 text-sm leading-relaxed text-primary">{state.success}</p>}</>;
 }
+
+const DEMO_ACCOUNTS = [
+  { label: "Vendor", email: "vendor.a@invofin.demo" },
+  { label: "Buyer", email: "buyer.a@invofin.demo" },
+  { label: "Risk Officer", email: "risk@invofin.demo" },
+  { label: "Lender", email: "lender.a@invofin.demo" },
+  { label: "Admin", email: "admin@invofin.demo" },
+] as const;
+
 export function SignInForm() {
   const [state, action, pending] = useActionState(signInAction, initial);
-  return <form action={action} className="space-y-4">
-    <Field label="Email" name="email" type="email" required autoComplete="email" maxLength={254} />
-    <Field label="Kata sandi" name="password" type="password" required autoComplete="current-password" />
-    <div className="text-right"><Link className="text-sm font-medium text-primary hover:underline" href="/forgot-password">Lupa kata sandi?</Link></div>
-    <Feedback state={state} /><Button type="submit" className="w-full" disabled={pending}>{pending ? "Memproses..." : "Masuk"}</Button>
-  </form>;
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const isDemoMode = process.env.NEXT_PUBLIC_APP_ENV !== "production";
+
+  return (
+    <div className="space-y-5">
+      <form action={action} className="space-y-4">
+        <Field
+          label="Email"
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          maxLength={254}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <Field
+          label="Kata sandi"
+          name="password"
+          type="password"
+          required
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <div className="text-right">
+          <Link className="text-sm font-medium text-primary hover:underline" href="/forgot-password">
+            Lupa kata sandi?
+          </Link>
+        </div>
+        <Feedback state={state} />
+        <Button type="submit" className="w-full" disabled={pending}>
+          {pending ? "Memproses..." : "Masuk"}
+        </Button>
+      </form>
+      {isDemoMode && (
+        <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3.5">
+          <p className="text-xs font-semibold text-primary">
+            Login Cepat Mode Pameran (Klik untuk Isi Otomatis)
+          </p>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {DEMO_ACCOUNTS.map((acc) => (
+              <Button
+                key={acc.email}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 bg-white px-2.5 text-xs"
+                onClick={() => {
+                  setEmail(acc.email);
+                  setPassword("InvofinDemo!2026");
+                }}
+              >
+                {acc.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 export function SignUpForm() {
   const [state, action, pending] = useActionState(signUpAction, initial);

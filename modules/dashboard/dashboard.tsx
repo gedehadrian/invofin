@@ -34,6 +34,7 @@ function rowActionLabel(role: DashboardData["role"], status: InvoiceSummary["sta
   if (role === "vendor" && status === "extraction_review") return "Cek Hasil OCR";
   if (role === "vendor" && status === "draft") return "Lengkapi";
   if (role === "buyer" && status === "buyer_review") return "Konfirmasi";
+  if (role === "buyer" && status === "funded") return "Lunasi Tagihan";
   if (role === "risk_officer" && status === "risk_review") return "Review Risiko";
   if (role === "lender" && ["eligible_for_funding", "partially_funded"].includes(status)) return "Danai";
   return "Lihat Detail";
@@ -372,6 +373,12 @@ export function Dashboard({ data, demo = false, view = "overview" }: { data: Das
                       Tolak / Sengketa
                     </Button>
                   </>
+                )}
+                {role === "buyer" && selected.status === "funded" && (
+                  <Button onClick={() => demoDecision("repaid")}>
+                    <Check />
+                    Simulasikan Pelunasan
+                  </Button>
                 )}
                 {role === "risk_officer" && selected.status === "risk_review" && (
                   <>

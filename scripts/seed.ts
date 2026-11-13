@@ -60,6 +60,7 @@ async function main() {
     { key: "vendorB", name: "CV Budi Logistik", type: "vendor", sector: "Ritel" },
     { key: "buyerA", name: "PT Anchor Manufaktur", type: "buyer", sector: "Manufaktur" },
     { key: "buyerB", name: "PT Ritel Nusantara", type: "buyer", sector: "Ritel" },
+    { key: "integrationBuyer", name: "Integration buyer", type: "buyer", sector: "Manufaktur" },
     { key: "lenderA", name: "Dana Mitra A", type: "lender", sector: "Keuangan" },
     { key: "lenderB", name: "Dana Mitra B", type: "lender", sector: "Keuangan" },
     { key: "platform", name: "InvoFin Platform", type: "platform", sector: "Fintech" },
@@ -67,6 +68,15 @@ async function main() {
 
   const orgIds: Record<string, string> = {};
   for (const org of orgs) {
+    const { data: existingOrg } = await supabase
+      .from("organizations")
+      .select("id")
+      .eq("name", org.name)
+      .maybeSingle();
+    if (existingOrg) {
+      orgIds[org.key] = existingOrg.id;
+      continue;
+    }
     const { data } = await supabase
       .from("organizations")
       .insert({ name: org.name, type: org.type, sector: org.sector, status: "active" })
@@ -87,12 +97,20 @@ async function main() {
     ["risk@invofin.demo", "platform", "risk_officer"],
   ];
   for (const [email, orgKey, role] of memberships) {
-    await supabase.from("organization_members").insert({
-      organization_id: orgIds[orgKey],
-      user_id: ids[email],
-      role,
-      is_primary: true,
-    });
+    await supabase.from("organization_members").upsert(
+      {
+        organization_id: orgIds[orgKey],
+        user_id: ids[email],
+        role,
+        is_primary: true,
+      },
+      { onConflict: "organization_id,user_id" },
+    );
+  }
+
+  if (process.argv.includes("--reset")) {
+    await supabase.from("invoices").delete().like("invoice_number", "INV-SEED-%");
+    await supabase.from("invoices").delete().like("invoice_number", "SYN-%");
   }
 
   const statuses = [
@@ -107,6 +125,14 @@ async function main() {
   ] as const;
 
   for (let i = 0; i < statuses.length; i++) {
+    const invoiceNumber = `INV-SEED-${1000 + i}`;
+    const { data: existingInvoice } = await supabase
+      .from("invoices")
+      .select("id")
+      .eq("invoice_number", invoiceNumber)
+      .maybeSingle();
+    if (existingInvoice) continue;
+
     const vendorOrg = i % 2 === 0 ? orgIds.vendorA : orgIds.vendorB;
     const buyerOrg = i % 2 === 0 ? orgIds.buyerA : orgIds.buyerB;
     const createdBy = i % 2 === 0 ? ids["vendor.a@invofin.demo"] : ids["vendor.b@invofin.demo"];
@@ -119,7 +145,7 @@ async function main() {
       .insert({
         vendor_org_id: vendorOrg,
         buyer_org_id: buyerOrg,
-        invoice_number: `INV-SEED-${1000 + i}`,
+        invoice_number: invoiceNumber,
         issue_date: issue.toISOString().slice(0, 10),
         due_date: due.toISOString().slice(0, 10),
         amount: 150_000_000 + i * 5_000_000,

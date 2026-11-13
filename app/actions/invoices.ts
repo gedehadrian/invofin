@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/auth/session";
+import { processNextDocumentJob } from "@/lib/documents/worker";
 import { extractionConfirmSchema, invoiceDraftSchema } from "@/lib/validations";
 
 export type ActionState = { error?: string; success?: string; invoiceId?: string };
@@ -118,7 +119,17 @@ export async function submitInvoice(invoiceId: string): Promise<ActionState> {
     .eq("id", invoiceId);
   if (error) return { error: error.message };
 
+  for (let i = 0; i < 3; i++) {
+    try {
+      const res = await processNextDocumentJob();
+      if (res.processed === 0) break;
+    } catch {
+      break;
+    }
+  }
+
   revalidatePath("/app/vendor/invoices");
+  revalidatePath(`/app/vendor/invoices/${invoiceId}`);
   return {
     success: "Invoice diajukan. Tunggu pemeriksaan dokumen, lalu konfirmasi hasil ekstraksi sebelum buyer meninjau.",
     invoiceId,

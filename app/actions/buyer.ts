@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -138,5 +139,85 @@ export async function decideBuyer(
   revalidatePath("/app/risk/queue");
   return {
     success: "Invoice dikonfirmasi. Keputusan akhir menunggu Risk Officer.",
+  };
+}
+
+/** Simulates buyer repayment at maturity and settles funding opportunity and commitments. */
+export async function repayInvoice(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const ctx = await requireRole(["buyer", "admin"]);
+  const invoiceId = String(formData.get("invoiceId") ?? "");
+  if (!z.string().uuid().safeParse(invoiceId).success) {
+    return { error: "ID invoice tidak valid." };
+  }
+
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { error: "Layanan pelunasan belum terkonfigurasi di server." };
+  }
+
+  const { data: invoice, error: fetchError } = await admin
+    .from("invoices")
+    .select("id, invoice_number, buyer_org_id, vendor_org_id, status, amount")
+    .eq("id", invoiceId)
+    .maybeSingle();
+
+  if (fetchError || !invoice) {
+    return { error: "Invoice tidak ditemukan." };
+  }
+  if (ctx.current.role === "buyer" && invoice.buyer_org_id !== ctx.current.organization_id) {
+    return { error: "Anda tidak memiliki akses ke tagihan organisasi lain." };
+  }
+  if (invoice.status !== "funded") {
+    return { error: "Hanya invoice berstatus Terdanai Penuh yang dapat dilunasi." };
+  }
+
+  const { error: updateInvoiceError } = await admin
+    .from("invoices")
+    .update({ status: "repaid" })
+    .eq("id", invoice.id)
+    .eq("status", "funded");
+  if (updateInvoiceError) {
+    return { error: "Gagal memperbarui status pelunasan tagihan." };
+  }
+
+  const { data: opp } = await admin
+    .from("funding_opportunities")
+    .select("id")
+    .eq("invoice_id", invoice.id)
+    .maybeSingle();
+
+  if (opp) {
+    await admin
+      .from("funding_opportunities")
+      .update({ status: "closed" })
+      .eq("id", opp.id);
+    await admin
+      .from("funding_commitments")
+      .update({ status: "confirmed" })
+      .eq("opportunity_id", opp.id);
+  }
+
+  await admin.from("audit_logs").insert({
+    actor_user_id: ctx.userId,
+    organization_id: ctx.current.organization_id,
+    action: "invoice.repaid",
+    entity_type: "invoice",
+    entity_id: invoice.id,
+    after_data: { status: "repaid", amount: invoice.amount },
+  });
+
+  revalidatePath("/app/buyer/approvals");
+  revalidatePath(`/app/buyer/approvals/${invoice.id}`);
+  revalidatePath(`/app/vendor/invoices/${invoice.id}`);
+  revalidatePath("/app/lender/portfolio");
+  revalidatePath("/app/admin");
+
+  return {
+    success: "Tagihan berhasil dilunasi! Dana pokok dan imbal hasil telah didistribusikan ke portofolio Lender.",
   };
 }
